@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
@@ -22,7 +22,7 @@ type Listing = {
   photos: { url: string; sort_order: number }[]
 }
 
-export default function SearchPage() {
+function SearchResults() {
   const searchParams = useSearchParams()
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
@@ -76,51 +76,59 @@ export default function SearchPage() {
   })
 
   return (
+    <div className="max-w-5xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">
+        {filteredListings.length} {filteredListings.length === 1 ? 'listing' : 'listings'} found
+      </h1>
+
+      {loading && <p className="text-gray-500">Loading...</p>}
+
+      {!loading && filteredListings.length === 0 && (
+        <p className="text-gray-500">No listings match your search yet.</p>
+      )}
+
+      <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+        {filteredListings.map((listing) => {
+          const photo = listing.photos?.sort((a, b) => a.sort_order - b.sort_order)[0]
+          return (
+            <div key={listing.id} className="border rounded-md overflow-hidden">
+              <div className="aspect-square bg-gray-100">
+                {photo ? (
+                  <img src={photo.url} alt={listing.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+                    No photo
+                  </div>
+                )}
+              </div>
+              <div className="p-3">
+                <h2 className="font-semibold truncate">{listing.title || 'Untitled listing'}</h2>
+                <p className="text-sm text-gray-500">
+                  {listing.breeder?.kennel_name ?? 'Unknown kennel'}
+                </p>
+                <div className="flex justify-between items-center mt-2 text-sm">
+                  <span>{listing.size?.label ?? '—'}</span>
+                  <span>{listing.country?.name ?? '—'}</span>
+                </div>
+                <p className="mt-2 font-bold">
+                  {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
+                </p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+export default function SearchPage() {
+  return (
     <>
       <Header />
-      <div className="max-w-5xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-6">
-          {filteredListings.length} {filteredListings.length === 1 ? 'listing' : 'listings'} found
-        </h1>
-
-        {loading && <p className="text-gray-500">Loading...</p>}
-
-        {!loading && filteredListings.length === 0 && (
-          <p className="text-gray-500">No listings match your search yet.</p>
-        )}
-
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {filteredListings.map((listing) => {
-            const photo = listing.photos?.sort((a, b) => a.sort_order - b.sort_order)[0]
-            return (
-              <div key={listing.id} className="border rounded-md overflow-hidden">
-                <div className="aspect-square bg-gray-100">
-                  {photo ? (
-                    <img src={photo.url} alt={listing.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
-                      No photo
-                    </div>
-                  )}
-                </div>
-                <div className="p-3">
-                  <h2 className="font-semibold truncate">{listing.title || 'Untitled listing'}</h2>
-                  <p className="text-sm text-gray-500">
-                    {listing.breeder?.kennel_name ?? 'Unknown kennel'}
-                  </p>
-                  <div className="flex justify-between items-center mt-2 text-sm">
-                    <span>{listing.size?.label ?? '—'}</span>
-                    <span>{listing.country?.name ?? '—'}</span>
-                  </div>
-                  <p className="mt-2 font-bold">
-                    {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
-                  </p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
+      <Suspense fallback={<div className="max-w-5xl mx-auto p-6 text-gray-500">Loading...</div>}>
+        <SearchResults />
+      </Suspense>
     </>
   )
 }
