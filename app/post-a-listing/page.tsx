@@ -63,7 +63,9 @@ type ListingForm = {
   size_code: string
   colour_code: string
   sire_colour: string
+  sire_size: string
   dam_colour: string
+  dam_size: string
   purposes: string[]
   kennel_registration_name: string
   registry_code: string
@@ -115,7 +117,9 @@ export default function PostAListingPage() {
     size_code: '',
     colour_code: '',
     sire_colour: '',
+    sire_size: '',
     dam_colour: '',
+    dam_size: '',
     purposes: [],
     kennel_registration_name: '',
     registry_code: '',
@@ -328,7 +332,7 @@ export default function PostAListingPage() {
       let sireId: string | null = null
       let damId: string | null = null
 
-      if (form.sire_colour || Object.keys(sireResults).length > 0) {
+      if (form.sire_colour || form.sire_size || Object.keys(sireResults).length > 0) {
         const { data: sireDog } = await supabase
           .from('dogs')
           .insert({ owner_breeder_id: user.id, size_id: null, registered_name: 'Sire' })
@@ -351,7 +355,7 @@ export default function PostAListingPage() {
         }
       }
 
-      if (form.dam_colour || Object.keys(damResults).length > 0) {
+      if (form.dam_colour || form.dam_size || Object.keys(damResults).length > 0) {
         const { data: damDog } = await supabase
           .from('dogs')
           .insert({ owner_breeder_id: user.id, size_id: null, registered_name: 'Dam' })
@@ -467,7 +471,6 @@ export default function PostAListingPage() {
                 onChange={(e) => update('listing_type', e.target.value)}
                 className="w-full border rounded-md px-3 py-2"
               >
-                <option value="LITTER">Litter</option>
                 <option value="PUPPY">Puppy</option>
                 <option value="YOUNG_DOG">Young dog</option>
                 <option value="ADULT_DOG">Adult dog</option>
@@ -605,6 +608,39 @@ export default function PostAListingPage() {
                   onChange={(e) => update('dam_colour', e.target.value)}
                   className="w-full border rounded-md px-3 py-2"
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Sire (father) size</label>
+                <select
+                  value={form.sire_size}
+                  onChange={(e) => update('sire_size', e.target.value)}
+                  className="w-full border rounded-md px-3 py-2"
+                >
+                  <option value="">Select a size</option>
+                  {SIZE_OPTIONS.map((s) => (
+                    <option key={s.code} value={s.code}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Dam (mother) size</label>
+                <select
+                  value={form.dam_size}
+                  onChange={(e) => update('dam_size', e.target.value)}
+                  className="w-full border rounded-md px-3 py-2"
+                >
+                  <option value="">Select a size</option>
+                  {SIZE_OPTIONS.map((s) => (
+                    <option key={s.code} value={s.code}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
