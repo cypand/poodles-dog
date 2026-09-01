@@ -403,7 +403,7 @@ export default function PostAListingPage() {
           price: form.price ? Number(form.price) : null,
           currency_code: form.currency_code,
           country_code: form.country_code,
-          sell_scope: form.sell_scope.length > 0 ? form.sell_scope[0] : null,
+          sell_scope: form.sell_scope.length > 0 ? form.sell_scope : null,
           transport_options: form.transport_options.length > 0 ? form.transport_options : null,
           microchipped: form.microchipped,
           vaccinated: form.vaccinated,
