@@ -49,6 +49,7 @@ function SearchResults() {
            breeder:breeder_profiles(kennel_name),
            photos:listing_photos(url, sort_order)`
         )
+        .eq('status', 'ACTIVE')
         .order('created_at', { ascending: false })
 
       setListings((data as unknown as Listing[]) ?? [])
