@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase/client";
 export default function Header() {
   const router = useRouter();
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,12 +19,14 @@ export default function Header() {
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("display_name")
+          .select("display_name, role")
           .eq("id", user.id)
           .single();
         setDisplayName(profile?.display_name ?? "Account");
+        setIsAdmin(profile?.role === "admin");
       } else {
         setDisplayName(null);
+        setIsAdmin(false);
       }
       setLoading(false);
     };
@@ -94,12 +97,20 @@ export default function Header() {
 
           {loading ? null : displayName ? (
             <>
+              {isAdmin && (
+                <Link
+                  href="/admin/listings"
+                  className="border border-pd-gold text-pd-gold px-3 py-1 text-xs font-bold hover:bg-pd-gold hover:text-pd-black"
+                >
+                  ADMIN
+                </Link>
+              )}
               <Link
-  href="/profile"
-  className="text-white/80 text-xs"
->
-  Woof, {displayName}
-</Link>
+                href="/profile"
+                className="text-white/80 text-xs"
+              >
+                Woof, {displayName}
+              </Link>
               <button
                 onClick={handleLogout}
                 className="border border-white/30 px-4 py-2 text-xs font-bold hover:border-pd-gold hover:text-pd-gold"
