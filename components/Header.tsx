@@ -1,8 +1,50 @@
+'use client'
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Heart, ChevronDown } from "lucide-react";
+import { supabase } from "@/lib/supabase/client";
 
 export default function Header() {
+  const router = useRouter();
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("id", user.id)
+          .single();
+        setDisplayName(profile?.display_name ?? "Account");
+      } else {
+        setDisplayName(null);
+      }
+      setLoading(false);
+    };
+
+    loadUser();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(() => {
+      loadUser();
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  };
+
   return (
     <header className="bg-pd-black text-white">
       <div className="container-pd flex items-center justify-between h-20">
@@ -49,20 +91,27 @@ export default function Header() {
           <Link href="/favorites" aria-label="Favorites">
             <Heart size={18} />
           </Link>
-          <Link
-            href="/sign-in"
-            className="hidden sm:inline border border-white/30 px-4 py-2 text-xs font-bold hover:border-pd-gold hover:text-pd-gold"
-          >
-            SIGN IN
-          </Link>
-          <Link
-            href="/sign-up"
-            className="bg-pd-gold text-pd-black px-4 py-2 text-xs font-bold hover:bg-pd-gold-light"
-          >
-            SIGN UP
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
-}
+
+          {loading ? null : displayName ? (
+            <>
+              <span className="hidden sm:inline text-white/80 text-xs font-bold">
+                Hi, {displayName}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="border border-white/30 px-4 py-2 text-xs font-bold hover:border-pd-gold hover:text-pd-gold"
+              >
+                LOG OUT
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="hidden sm:inline border border-white/30 px-4 py-2 text-xs font-bold hover:border-pd-gold hover:text-pd-gold"
+              >
+                SIGN IN
+              </Link>
+              <Link
+                href="/register"
+                className="bg-pd-gold text-pd-bla
