@@ -81,7 +81,8 @@ type ListingForm = {
   transport_options: string[]
 }
 
-type Colour = { code: string; label: string }
+type Colour = { id: number; code: string; label: string }
+type Size = { id: number; code: string; label: string }
 type Registry = { id: number; code: string; name: string }
 type HealthTestType = { id: number; code: string; label: string; result_type: string }
 type Currency = { code: string; symbol: string }
@@ -94,6 +95,7 @@ export default function PostAListingPage() {
   const [error, setError] = useState('')
 
   const [colours, setColours] = useState<Colour[]>([])
+  const [sizes, setSizes] = useState<Size[]>([])
   const [registries, setRegistries] = useState<Registry[]>([])
   const [healthTests, setHealthTests] = useState<HealthTestType[]>([])
   const [currencies, setCurrencies] = useState<Currency[]>([])
@@ -137,8 +139,11 @@ export default function PostAListingPage() {
 
   useEffect(() => {
     const loadLookups = async () => {
-      const { data: coloursData } = await supabase.from('poodle_colours').select('code, label').order('label')
+      const { data: coloursData } = await supabase.from('poodle_colours').select('id, code, label').order('label')
       setColours(coloursData ?? [])
+
+      const { data: sizesData } = await supabase.from('poodle_sizes').select('id, code, label').order('label')
+      setSizes(sizesData ?? [])
 
       const { data: registriesData } = await supabase.from('registries').select('id, code, name').order('name')
       setRegistries(registriesData ?? [])
@@ -329,13 +334,22 @@ export default function PostAListingPage() {
         return
       }
 
+      const sizeMatch = sizes.find((s) => s.code === form.size_code)
+      const colourMatch = colours.find((c) => c.code === form.colour_code)
+      const sireSizeMatch = sizes.find((s) => s.code === form.sire_size)
+      const damSizeMatch = sizes.find((s) => s.code === form.dam_size)
+
       let sireId: string | null = null
       let damId: string | null = null
 
       if (form.sire_colour || form.sire_size || Object.keys(sireResults).length > 0) {
         const { data: sireDog } = await supabase
           .from('dogs')
-          .insert({ owner_breeder_id: user.id, size_id: null, registered_name: 'Sire' })
+          .insert({
+            owner_breeder_id: user.id,
+            size_id: sireSizeMatch?.id ?? null,
+            registered_name: 'Sire',
+          })
           .select('id')
           .single()
         sireId = sireDog?.id ?? null
@@ -358,7 +372,11 @@ export default function PostAListingPage() {
       if (form.dam_colour || form.dam_size || Object.keys(damResults).length > 0) {
         const { data: damDog } = await supabase
           .from('dogs')
-          .insert({ owner_breeder_id: user.id, size_id: null, registered_name: 'Dam' })
+          .insert({
+            owner_breeder_id: user.id,
+            size_id: damSizeMatch?.id ?? null,
+            registered_name: 'Dam',
+          })
           .select('id')
           .single()
         damId = damDog?.id ?? null
@@ -388,8 +406,8 @@ export default function PostAListingPage() {
           title: form.title,
           description: form.description,
           sex: form.sex,
-          size_id: null,
-          colour_id: null,
+          size_id: sizeMatch?.id ?? null,
+          colour_id: colourMatch?.id ?? null,
           date_of_birth: form.date_of_birth || null,
           ready_from: form.ready_from || null,
           males_available: form.males_available ? Number(form.males_available) : null,
