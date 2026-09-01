@@ -40,6 +40,7 @@ const SELL_SCOPE_OPTIONS = [
   { code: 'ASIA', label: 'Asia' },
   { code: 'AFRICA', label: 'Africa' },
   { code: 'OCEANIA', label: 'Oceania' },
+  { code: 'WORLDWIDE', label: 'Worldwide' },
 ]
 
 const TRANSPORT_OPTIONS = [
@@ -47,6 +48,7 @@ const TRANSPORT_OPTIONS = [
   { code: 'AIR_CARGO', label: 'By plane / air cargo' },
   { code: 'BUYER_COLLECTION', label: 'New owner collects in person' },
   { code: 'FLIGHT_NANNY', label: 'Courier / transport company' },
+  { code: 'ANY', label: 'Any of the above / no preference' },
 ]
 
 type ListingForm = {
@@ -59,7 +61,6 @@ type ListingForm = {
   males_available: string
   females_available: string
   size_code: string
-  adult_height_cm: string
   colour_code: string
   sire_colour: string
   dam_colour: string
@@ -112,7 +113,6 @@ export default function PostAListingPage() {
     males_available: '',
     females_available: '',
     size_code: '',
-    adult_height_cm: '',
     colour_code: '',
     sire_colour: '',
     dam_colour: '',
@@ -484,7 +484,6 @@ export default function PostAListingPage() {
                 <option value="">Select</option>
                 <option value="MALE">Male</option>
                 <option value="FEMALE">Female</option>
-                <option value="MIXED">Mixed (litter)</option>
               </select>
             </div>
 
@@ -570,18 +569,6 @@ export default function PostAListingPage() {
                   </option>
                 ))}
               </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Exact adult height (cm) — optional</label>
-              <input
-                type="number"
-                min="0"
-                value={form.adult_height_cm}
-                onChange={(e) => update('adult_height_cm', e.target.value)}
-                placeholder="e.g. 35"
-                className="w-full border rounded-md px-3 py-2"
-              />
             </div>
 
             <div>
@@ -856,4 +843,4 @@ export default function PostAListingPage() {
       </div>
     </>
   )
-                }
+}
