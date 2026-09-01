@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { Heart } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
 
@@ -30,6 +31,8 @@ function SearchResults() {
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState<SortOption>('newest')
+  const [userId, setUserId] = useState<string | null>(null)
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
 
   const sizeFilter = searchParams.get('size')?.split(',').filter(Boolean) ?? []
   const sexFilter = searchParams.get('sex')?.split(',').filter(Boolean) ?? []
@@ -39,6 +42,10 @@ function SearchResults() {
   useEffect(() => {
     const load = async () => {
       setLoading(true)
+
+      const { data: { user } } = await supabase.auth.getUser()
+      setUserId(user?.id ?? null)
+
       const { data } = await supabase
         .from('listings')
         .select(
@@ -53,10 +60,40 @@ function SearchResults() {
         .order('created_at', { ascending: false })
 
       setListings((data as unknown as Listing[]) ?? [])
+
+      if (user) {
+        const { data: favData } = await supabase
+          .from('favorites')
+          .select('listing_id')
+          .eq('user_id', user.id)
+        setFavoriteIds(new Set((favData ?? []).map((f) => f.listing_id)))
+      }
+
       setLoading(false)
     }
     load()
   }, [])
+
+  const toggleFavorite = async (listingId: string) => {
+    if (!userId) {
+      window.location.href = '/login'
+      return
+    }
+
+    const isFavorited = favoriteIds.has(listingId)
+
+    if (isFavorited) {
+      await supabase.from('favorites').delete().eq('user_id', userId).eq('listing_id', listingId)
+      setFavoriteIds((prev) => {
+        const next = new Set(prev)
+        next.delete(listingId)
+        return next
+      })
+    } else {
+      await supabase.from('favorites').insert({ user_id: userId, listing_id: listingId })
+      setFavoriteIds((prev) => new Set(prev).add(listingId))
+    }
+  }
 
   const matchesLocation = (listing: Listing): boolean => {
     if (locationFilter.length === 0) return true
@@ -119,8 +156,20 @@ function SearchResults() {
       <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
         {sortedListings.map((listing) => {
           const photo = listing.photos?.sort((a, b) => a.sort_order - b.sort_order)[0]
+          const isFavorited = favoriteIds.has(listing.id)
           return (
-            <div key={listing.id} className="border rounded-md overflow-hidden">
+            <div key={listing.id} className="border rounded-md overflow-hidden relative">
+              <button
+                onClick={() => toggleFavorite(listing.id)}
+                aria-label="Toggle favorite"
+                className="absolute top-2 right-2 z-10 bg-white/90 rounded-full p-2 shadow"
+              >
+                <Heart
+                  size={18}
+                  fill={isFavorited ? '#c9a227' : 'none'}
+                  color={isFavorited ? '#c9a227' : '#000'}
+                />
+              </button>
               <div className="aspect-square bg-gray-100">
                 {photo ? (
                   <img src={photo.url} alt={listing.title} className="w-full h-full object-cover" />
