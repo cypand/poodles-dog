@@ -28,6 +28,7 @@ function SearchResults() {
   const [loading, setLoading] = useState(true)
 
   const sizeFilter = searchParams.get('size')?.split(',').filter(Boolean) ?? []
+  const sexFilter = searchParams.get('sex')?.split(',').filter(Boolean) ?? []
   const colourFilter = searchParams.get('colour')?.split(',').filter(Boolean) ?? []
   const locationFilter = searchParams.get('location')?.split(',').filter(Boolean) ?? []
 
@@ -70,6 +71,7 @@ function SearchResults() {
 
   const filteredListings = listings.filter((l) => {
     if (sizeFilter.length > 0 && !sizeFilter.includes(l.size?.code ?? '')) return false
+    if (sexFilter.length > 0 && !sexFilter.includes(l.sex ?? '')) return false
     if (colourFilter.length > 0 && !colourFilter.includes(l.colour?.code ?? '')) return false
     if (!matchesLocation(l)) return false
     return true
