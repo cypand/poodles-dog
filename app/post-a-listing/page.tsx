@@ -1,4 +1,4 @@
-        'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -20,6 +20,12 @@ const SIZE_OPTIONS = [
   { code: 'STANDARD', label: 'Standard' },
 ]
 
+const RESULT_OPTIONS = [
+  { value: 'CLEAR', label: 'Clear' },
+  { value: 'CARRIER', label: 'Carrier' },
+  { value: 'AFFECTED', label: 'Affected' },
+]
+
 type ListingForm = {
   listing_type: string
   title: string
@@ -39,18 +45,13 @@ type ListingForm = {
   registration_number: string
   has_pedigree: string
   parent_titles: string
+  microchipped: boolean
+  vaccinated: boolean
 }
 
-type Colour = {
-  code: string
-  label: string
-}
-
-type Registry = {
-  id: number
-  code: string
-  name: string
-}
+type Colour = { code: string; label: string }
+type Registry = { id: number; code: string; name: string }
+type HealthTestType = { id: number; code: string; label: string; result_type: string }
 
 export default function PostAListingPage() {
   const router = useRouter()
@@ -59,6 +60,10 @@ export default function PostAListingPage() {
   const [error, setError] = useState('')
   const [colours, setColours] = useState<Colour[]>([])
   const [registries, setRegistries] = useState<Registry[]>([])
+  const [healthTests, setHealthTests] = useState<HealthTestType[]>([])
+
+  const [sireResults, setSireResults] = useState<Record<string, string>>({})
+  const [damResults, setDamResults] = useState<Record<string, string>>({})
 
   const [form, setForm] = useState<ListingForm>({
     listing_type: 'PUPPY',
@@ -79,6 +84,8 @@ export default function PostAListingPage() {
     registration_number: '',
     has_pedigree: '',
     parent_titles: '',
+    microchipped: false,
+    vaccinated: false,
   })
 
   useEffect(() => {
@@ -94,12 +101,22 @@ export default function PostAListingPage() {
         .select('id, code, name')
         .order('name')
       setRegistries(registriesData ?? [])
+
+      const { data: healthData } = await supabase
+        .from('health_test_types')
+        .select('id, code, label, result_type')
+        .order('label')
+      setHealthTests(healthData ?? [])
     }
     loadLookups()
   }, [])
 
   const update = (field: keyof ListingForm, value: string) => {
     setForm({ ...form, [field]: value })
+  }
+
+  const toggleBoolean = (field: 'microchipped' | 'vaccinated') => {
+    setForm((prev) => ({ ...prev, [field]: !prev[field] }))
   }
 
   const togglePurpose = (code: string) => {
@@ -115,8 +132,67 @@ export default function PostAListingPage() {
     })
   }
 
+  const toggleParentTest = (
+    parent: 'sire' | 'dam',
+    code: string,
+    setter: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  ) => {
+    setter((prev) => {
+      const copy = { ...prev }
+      if (copy[code]) {
+        delete copy[code]
+      } else {
+        copy[code] = 'CLEAR'
+      }
+      return copy
+    })
+  }
+
+  const setParentTestResult = (
+    code: string,
+    value: string,
+    setter: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  ) => {
+    setter((prev) => ({ ...prev, [code]: value }))
+  }
+
   const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1))
   const back = () => setStep((s) => Math.max(s - 1, 0))
+
+  const renderParentHealthSection = (
+    title: string,
+    results: Record<string, string>,
+    setter: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  ) => (
+    <div className="border rounded-md p-4 space-y-3">
+      <h3 className="font-semibold">{title}</h3>
+      {healthTests.map((t) => (
+        <div key={t.code} className="flex items-center justify-between gap-2">
+          <label className="flex items-center gap-2 flex-1">
+            <input
+              type="checkbox"
+              checked={!!results[t.code]}
+              onChange={() => toggleParentTest(title === 'Sire (father)' ? 'sire' : 'dam', t.code, setter)}
+            />
+            <span className="text-sm">{t.label}</span>
+          </label>
+          {results[t.code] && (
+            <select
+              value={results[t.code]}
+              onChange={(e) => setParentTestResult(t.code, e.target.value, setter)}
+              className="border rounded-md px-2 py-1 text-sm"
+            >
+              {RESULT_OPTIONS.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      ))}
+    </div>
+  )
 
   return (
     <>
@@ -374,7 +450,37 @@ export default function PostAListingPage() {
           </div>
         )}
 
-        {step > 2 && (
+        {step === 3 && (
+          <div className="space-y-6">
+            <p className="text-sm text-gray-500">
+              Tick each health test that has been carried out on the parents, and select the result.
+            </p>
+
+            {renderParentHealthSection('Sire (father)', sireResults, setSireResults)}
+            {renderParentHealthSection('Dam (mother)', damResults, setDamResults)}
+
+            <div className="border-t pt-4 space-y-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={form.microchipped}
+                  onChange={() => toggleBoolean('microchipped')}
+                />
+                Puppy is microchipped
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={form.vaccinated}
+                  onChange={() => toggleBoolean('vaccinated')}
+                />
+                Puppy is vaccinated
+              </label>
+            </div>
+          </div>
+        )}
+
+        {step > 3 && (
           <div className="text-gray-400 italic py-12 text-center">
             Step "{STEPS[step]}" coming soon...
           </div>
