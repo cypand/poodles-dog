@@ -1,0 +1,126 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { supabase } from '@/lib/supabase/client'
+import Header from '@/components/Header'
+
+type Listing = {
+  id: string
+  title: string
+  description: string | null
+  price: number | null
+  currency_code: string | null
+  country_code: string | null
+  sell_scope: string[] | null
+  sex: string | null
+  date_of_birth: string | null
+  size: { code: string; label: string } | null
+  colour: { code: string; label: string } | null
+  country: { code: string; name: string; continent: string | null } | null
+  breeder: { kennel_name: string } | null
+  photos: { url: string; sort_order: number }[]
+}
+
+export default function SearchPage() {
+  const searchParams = useSearchParams()
+  const [listings, setListings] = useState<Listing[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const sizeFilter = searchParams.get('size')?.split(',').filter(Boolean) ?? []
+  const colourFilter = searchParams.get('colour')?.split(',').filter(Boolean) ?? []
+  const locationFilter = searchParams.get('location')?.split(',').filter(Boolean) ?? []
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      const { data } = await supabase
+        .from('listings')
+        .select(
+          `id, title, description, price, currency_code, country_code, sell_scope, sex, date_of_birth,
+           size:poodle_sizes(code, label),
+           colour:poodle_colours(code, label),
+           country:countries(code, name, continent),
+           breeder:breeder_profiles(kennel_name),
+           photos:listing_photos(url, sort_order)`
+        )
+        .order('created_at', { ascending: false })
+
+      setListings((data as unknown as Listing[]) ?? [])
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  const matchesLocation = (listing: Listing): boolean => {
+    if (locationFilter.length === 0) return true
+    if (!listing.country) return false
+
+    const scope = listing.sell_scope ?? []
+
+    return locationFilter.some((loc) => {
+      if (loc === listing.country?.code) return true
+      if (loc === 'WORLDWIDE') return scope.includes('WORLDWIDE')
+      if (loc === listing.country?.continent) {
+        return scope.includes(loc) || scope.includes('WORLDWIDE')
+      }
+      return false
+    })
+  }
+
+  const filteredListings = listings.filter((l) => {
+    if (sizeFilter.length > 0 && !sizeFilter.includes(l.size?.code ?? '')) return false
+    if (colourFilter.length > 0 && !colourFilter.includes(l.colour?.code ?? '')) return false
+    if (!matchesLocation(l)) return false
+    return true
+  })
+
+  return (
+    <>
+      <Header />
+      <div className="max-w-5xl mx-auto p-6">
+        <h1 className="text-2xl font-bold mb-6">
+          {filteredListings.length} {filteredListings.length === 1 ? 'listing' : 'listings'} found
+        </h1>
+
+        {loading && <p className="text-gray-500">Loading...</p>}
+
+        {!loading && filteredListings.length === 0 && (
+          <p className="text-gray-500">No listings match your search yet.</p>
+        )}
+
+        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {filteredListings.map((listing) => {
+            const photo = listing.photos?.sort((a, b) => a.sort_order - b.sort_order)[0]
+            return (
+              <div key={listing.id} className="border rounded-md overflow-hidden">
+                <div className="aspect-square bg-gray-100">
+                  {photo ? (
+                    <img src={photo.url} alt={listing.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+                      No photo
+                    </div>
+                  )}
+                </div>
+                <div className="p-3">
+                  <h2 className="font-semibold truncate">{listing.title || 'Untitled listing'}</h2>
+                  <p className="text-sm text-gray-500">
+                    {listing.breeder?.kennel_name ?? 'Unknown kennel'}
+                  </p>
+                  <div className="flex justify-between items-center mt-2 text-sm">
+                    <span>{listing.size?.label ?? '—'}</span>
+                    <span>{listing.country?.name ?? '—'}</span>
+                  </div>
+                  <p className="mt-2 font-bold">
+                    {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
+                  </p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </>
+  )
+}
