@@ -108,7 +108,7 @@ export default function Header() {
             <>
               <Link
                 href="/login"
-                className="hidden sm:inline border border-white/30 px-4 py-2 text-xs font-bold hover:border-pd-gold hover:text-pd-gold"
+                className="border border-white/30 px-4 py-2 text-xs font-bold hover:border-pd-gold hover:text-pd-gold"
               >
                 SIGN IN
               </Link>
