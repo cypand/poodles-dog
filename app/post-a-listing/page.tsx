@@ -1,11 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
 
 const STEPS = ['Basics', 'Size & Purpose', 'Pedigree & Kennel', 'Health', 'Price & Location', 'Photos']
+
+const PURPOSE_OPTIONS = [
+  { code: 'PET_HOME', label: 'Pet home' },
+  { code: 'SHOW_HOME', label: 'Show home' },
+  { code: 'GROOMING_DOG', label: 'Grooming dog' },
+]
 
 type ListingForm = {
   listing_type: string
@@ -15,13 +21,32 @@ type ListingForm = {
   ready_from: string
   males_available: string
   females_available: string
+  size_code: string
+  adult_height_cm: string
+  colour_code: string
+  sire_colour: string
+  dam_colour: string
+  purposes: string[]
 }
+
+type Colour = {
+  code: string
+  label: string
+}
+
+const SIZE_OPTIONS = [
+  { code: 'TOY', label: 'Toy' },
+  { code: 'MINIATURE', label: 'Miniature' },
+  { code: 'MEDIUM', label: 'Medium' },
+  { code: 'STANDARD', label: 'Standard' },
+]
 
 export default function PostAListingPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [colours, setColours] = useState<Colour[]>([])
 
   const [form, setForm] = useState<ListingForm>({
     listing_type: 'PUPPY',
@@ -31,10 +56,40 @@ export default function PostAListingPage() {
     ready_from: '',
     males_available: '',
     females_available: '',
+    size_code: '',
+    adult_height_cm: '',
+    colour_code: '',
+    sire_colour: '',
+    dam_colour: '',
+    purposes: [],
   })
+
+  useEffect(() => {
+    const loadColours = async () => {
+      const { data } = await supabase
+        .from('poodle_colours')
+        .select('code, label')
+        .order('label')
+      setColours(data ?? [])
+    }
+    loadColours()
+  }, [])
 
   const update = (field: keyof ListingForm, value: string) => {
     setForm({ ...form, [field]: value })
+  }
+
+  const togglePurpose = (code: string) => {
+    setForm((prev) => {
+      const has = prev.purposes.includes(code)
+      if (has) {
+        return { ...prev, purposes: prev.purposes.filter((p) => p !== code) }
+      }
+      if (prev.purposes.length >= 3) {
+        return prev
+      }
+      return { ...prev, purposes: [...prev.purposes, code] }
+    })
   }
 
   const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1))
@@ -46,7 +101,7 @@ export default function PostAListingPage() {
       <div className="max-w-2xl mx-auto mt-10 p-6">
         <h1 className="text-2xl font-bold mb-2">Post a Listing</h1>
 
-        <div className="flex items-center gap-2 mb-8 text-xs text-gray-500">
+        <div className="flex items-center gap-2 mb-8 text-xs text-gray-500 flex-wrap">
           {STEPS.map((s, i) => (
             <div key={s} className={`px-2 py-1 rounded ${i === step ? 'bg-black text-white' : ''}`}>
               {i + 1}. {s}
@@ -136,7 +191,92 @@ export default function PostAListingPage() {
           </div>
         )}
 
-        {step > 0 && (
+        {step === 1 && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Size</label>
+              <select
+                value={form.size_code}
+                onChange={(e) => update('size_code', e.target.value)}
+                className="w-full border rounded-md px-3 py-2"
+              >
+                <option value="">Select a size</option>
+                {SIZE_OPTIONS.map((s) => (
+                  <option key={s.code} value={s.code}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Adult height (cm) — optional</label>
+              <input
+                type="number"
+                min="0"
+                value={form.adult_height_cm}
+                onChange={(e) => update('adult_height_cm', e.target.value)}
+                placeholder="e.g. 35"
+                className="w-full border rounded-md px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Colour</label>
+              <select
+                value={form.colour_code}
+                onChange={(e) => update('colour_code', e.target.value)}
+                className="w-full border rounded-md px-3 py-2"
+              >
+                <option value="">Select a colour</option>
+                {colours.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Sire (father) colour</label>
+                <input
+                  type="text"
+                  value={form.sire_colour}
+                  onChange={(e) => update('sire_colour', e.target.value)}
+                  className="w-full border rounded-md px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Dam (mother) colour</label>
+                <input
+                  type="text"
+                  value={form.dam_colour}
+                  onChange={(e) => update('dam_colour', e.target.value)}
+                  className="w-full border rounded-md px-3 py-2"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Suitable for (choose 1–3)</label>
+              <div className="space-y-2">
+                {PURPOSE_OPTIONS.map((p) => (
+                  <label key={p.code} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={form.purposes.includes(p.code)}
+                      onChange={() => togglePurpose(p.code)}
+                    />
+                    {p.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step > 1 && (
           <div className="text-gray-400 italic py-12 text-center">
             Step "{STEPS[step]}" coming soon...
           </div>
