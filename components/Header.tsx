@@ -96,7 +96,7 @@ export default function Header() {
             <>
               <Link
   href="/profile"
-  className="hidden sm:inline text-white/80 text-xs font-bold hover:text-pd-gold"
+  className="text-white/80 text-xs
 >
   Woof, {displayName}
 </Link>
