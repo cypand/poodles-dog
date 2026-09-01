@@ -31,6 +31,24 @@ const EXAM_RESULT_OPTIONS = [
   { value: 'ABNORMAL', label: 'Abnormal' },
 ]
 
+const SELL_SCOPE_OPTIONS = [
+  { code: 'OWN_COUNTRY', label: 'Own country only' },
+  { code: 'EUROPE', label: 'Europe' },
+  { code: 'UK', label: 'UK' },
+  { code: 'NORTH_AMERICA', label: 'North America' },
+  { code: 'SOUTH_AMERICA', label: 'South America' },
+  { code: 'ASIA', label: 'Asia' },
+  { code: 'AFRICA', label: 'Africa' },
+  { code: 'OCEANIA', label: 'Oceania' },
+]
+
+const TRANSPORT_OPTIONS = [
+  { code: 'GROUND', label: 'By car / ground transport' },
+  { code: 'AIR_CARGO', label: 'By plane / air cargo' },
+  { code: 'BUYER_COLLECTION', label: 'New owner collects in person' },
+  { code: 'FLIGHT_NANNY', label: 'Courier / transport company' },
+]
+
 type ListingForm = {
   listing_type: string
   title: string
@@ -52,11 +70,18 @@ type ListingForm = {
   parent_titles: string
   microchipped: boolean
   vaccinated: boolean
+  price: string
+  currency_code: string
+  country_code: string
+  sell_scope: string[]
+  transport_options: string[]
 }
 
 type Colour = { code: string; label: string }
 type Registry = { id: number; code: string; name: string }
 type HealthTestType = { id: number; code: string; label: string; result_type: string }
+type Currency = { code: string; symbol: string }
+type Country = { code: string; name: string }
 
 export default function PostAListingPage() {
   const router = useRouter()
@@ -66,6 +91,8 @@ export default function PostAListingPage() {
   const [colours, setColours] = useState<Colour[]>([])
   const [registries, setRegistries] = useState<Registry[]>([])
   const [healthTests, setHealthTests] = useState<HealthTestType[]>([])
+  const [currencies, setCurrencies] = useState<Currency[]>([])
+  const [countries, setCountries] = useState<Country[]>([])
 
   const [sireResults, setSireResults] = useState<Record<string, string>>({})
   const [damResults, setDamResults] = useState<Record<string, string>>({})
@@ -91,6 +118,11 @@ export default function PostAListingPage() {
     parent_titles: '',
     microchipped: false,
     vaccinated: false,
+    price: '',
+    currency_code: 'EUR',
+    country_code: '',
+    sell_scope: [],
+    transport_options: [],
   })
 
   useEffect(() => {
@@ -112,6 +144,18 @@ export default function PostAListingPage() {
         .select('id, code, label, result_type')
         .order('label')
       setHealthTests(healthData ?? [])
+
+      const { data: currencyData } = await supabase
+        .from('currencies')
+        .select('code, symbol')
+        .order('code')
+      setCurrencies(currencyData ?? [])
+
+      const { data: countryData } = await supabase
+        .from('countries')
+        .select('code, name')
+        .order('name')
+      setCountries(countryData ?? [])
     }
     loadLookups()
   }, [])
@@ -134,6 +178,17 @@ export default function PostAListingPage() {
         return prev
       }
       return { ...prev, purposes: [...prev.purposes, code] }
+    })
+  }
+
+  const toggleListValue = (field: 'sell_scope' | 'transport_options', code: string) => {
+    setForm((prev) => {
+      const list = prev[field]
+      const has = list.includes(code)
+      return {
+        ...prev,
+        [field]: has ? list.filter((v) => v !== code) : [...list, code],
+      }
     })
   }
 
@@ -509,7 +564,90 @@ export default function PostAListingPage() {
           </div>
         )}
 
-        {step > 3 && (
+        {step === 4 && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2">
+                <label className="block text-sm font-medium mb-1">Price</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.price}
+                  onChange={(e) => update('price', e.target.value)}
+                  className="w-full border rounded-md px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Currency</label>
+                <select
+                  value={form.currency_code}
+                  onChange={(e) => update('currency_code', e.target.value)}
+                  className="w-full border rounded-md px-3 py-2"
+                >
+                  {currencies.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} ({c.symbol})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Country</label>
+              <select
+                value={form.country_code}
+                onChange={(e) => update('country_code', e.target.value)}
+                className="w-full border rounded-md px-3 py-2"
+              >
+                <option value="">Select a country</option>
+                {countries.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Willing to send to (choose all that apply)</label>
+              <div className="space-y-2">
+                {SELL_SCOPE_OPTIONS.map((s) => (
+                  <label key={s.code} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={form.sell_scope.includes(s.code)}
+                      onChange={() => toggleListValue('sell_scope', s.code)}
+                    />
+                    {s.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Transport options</label>
+              <div className="space-y-2">
+                {TRANSPORT_OPTIONS.map((t) => (
+                  <label key={t.code} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={form.transport_options.includes(t.code)}
+                      onChange={() => toggleListValue('transport_options', t.code)}
+                    />
+                    {t.label}
+                  </label>
+                ))}
+                <label className="flex items-center gap-2 text-gray-500">
+                  <input type="checkbox" checked={form.transport_options.length === 0} readOnly disabled />
+                  No preference (leave all unchecked)
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step > 4 && (
           <div className="text-gray-400 italic py-12 text-center">
             Step "{STEPS[step]}" coming soon...
           </div>
