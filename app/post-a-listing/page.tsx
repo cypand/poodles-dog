@@ -53,6 +53,7 @@ type ListingForm = {
   listing_type: string
   title: string
   description: string
+  sex: string
   date_of_birth: string
   ready_from: string
   males_available: string
@@ -88,6 +89,7 @@ export default function PostAListingPage() {
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
   const [colours, setColours] = useState<Colour[]>([])
   const [registries, setRegistries] = useState<Registry[]>([])
   const [healthTests, setHealthTests] = useState<HealthTestType[]>([])
@@ -97,10 +99,14 @@ export default function PostAListingPage() {
   const [sireResults, setSireResults] = useState<Record<string, string>>({})
   const [damResults, setDamResults] = useState<Record<string, string>>({})
 
+  const [photos, setPhotos] = useState<(File | null)[]>([null, null, null])
+  const [photoPreviews, setPhotoPreviews] = useState<(string | null)[]>([null, null, null])
+
   const [form, setForm] = useState<ListingForm>({
     listing_type: 'PUPPY',
     title: '',
     description: '',
+    sex: '',
     date_of_birth: '',
     ready_from: '',
     males_available: '',
@@ -127,16 +133,10 @@ export default function PostAListingPage() {
 
   useEffect(() => {
     const loadLookups = async () => {
-      const { data: coloursData } = await supabase
-        .from('poodle_colours')
-        .select('code, label')
-        .order('label')
+      const { data: coloursData } = await supabase.from('poodle_colours').select('code, label').order('label')
       setColours(coloursData ?? [])
 
-      const { data: registriesData } = await supabase
-        .from('registries')
-        .select('id, code, name')
-        .order('name')
+      const { data: registriesData } = await supabase.from('registries').select('id, code, name').order('name')
       setRegistries(registriesData ?? [])
 
       const { data: healthData } = await supabase
@@ -145,16 +145,10 @@ export default function PostAListingPage() {
         .order('label')
       setHealthTests(healthData ?? [])
 
-      const { data: currencyData } = await supabase
-        .from('currencies')
-        .select('code, symbol')
-        .order('code')
+      const { data: currencyData } = await supabase.from('currencies').select('code, symbol').order('code')
       setCurrencies(currencyData ?? [])
 
-      const { data: countryData } = await supabase
-        .from('countries')
-        .select('code, name')
-        .order('name')
+      const { data: countryData } = await supabase.from('countries').select('code, name').order('name')
       setCountries(countryData ?? [])
     }
     loadLookups()
@@ -171,12 +165,8 @@ export default function PostAListingPage() {
   const togglePurpose = (code: string) => {
     setForm((prev) => {
       const has = prev.purposes.includes(code)
-      if (has) {
-        return { ...prev, purposes: prev.purposes.filter((p) => p !== code) }
-      }
-      if (prev.purposes.length >= 3) {
-        return prev
-      }
+      if (has) return { ...prev, purposes: prev.purposes.filter((p) => p !== code) }
+      if (prev.purposes.length >= 3) return prev
       return { ...prev, purposes: [...prev.purposes, code] }
     })
   }
@@ -185,10 +175,7 @@ export default function PostAListingPage() {
     setForm((prev) => {
       const list = prev[field]
       const has = list.includes(code)
-      return {
-        ...prev,
-        [field]: has ? list.filter((v) => v !== code) : [...list, code],
-      }
+      return { ...prev, [field]: has ? list.filter((v) => v !== code) : [...list, code] }
     })
   }
 
@@ -216,6 +203,20 @@ export default function PostAListingPage() {
     setter((prev) => ({ ...prev, [code]: value }))
   }
 
+  const handlePhotoChange = (index: number, file: File | null) => {
+    const newPhotos = [...photos]
+    newPhotos[index] = file
+    setPhotos(newPhotos)
+
+    const newPreviews = [...photoPreviews]
+    if (file) {
+      newPreviews[index] = URL.createObjectURL(file)
+    } else {
+      newPreviews[index] = null
+    }
+    setPhotoPreviews(newPreviews)
+  }
+
   const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1))
   const back = () => setStep((s) => Math.max(s - 1, 0))
 
@@ -225,7 +226,6 @@ export default function PostAListingPage() {
     setter: React.Dispatch<React.SetStateAction<Record<string, string>>>
   ) => {
     if (results[t.code] === undefined) return null
-
     if (t.result_type === 'SCORE') {
       return (
         <input
@@ -237,9 +237,7 @@ export default function PostAListingPage() {
         />
       )
     }
-
     const options = t.result_type === 'EXAM' ? EXAM_RESULT_OPTIONS : DNA_RESULT_OPTIONS
-
     return (
       <select
         value={results[t.code]}
@@ -278,6 +276,155 @@ export default function PostAListingPage() {
     </div>
   )
 
+  const validate = (): string | null => {
+    if (!form.listing_type) return 'Please select a listing type.'
+    if (!form.sex) return 'Please select the sex.'
+    if (!form.date_of_birth) return 'Please enter the date of birth.'
+    if (!form.size_code) return 'Please select a size.'
+    if (!form.colour_code) return 'Please select a colour.'
+    if (!form.price) return 'Please enter a price.'
+    if (!form.country_code) return 'Please select a country.'
+    if (photos.every((p) => p === null)) return 'Please upload at least 1 photo.'
+    return null
+  }
+
+  const handleSubmit = async () => {
+    const validationError = validate()
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    setSaving(true)
+    setError('')
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setError('You must be logged in to post a listing.')
+        setSaving(false)
+        return
+      }
+
+      let sireId: string | null = null
+      let damId: string | null = null
+
+      if (form.sire_colour || Object.keys(sireResults).length > 0) {
+        const { data: sireDog } = await supabase
+          .from('dogs')
+          .insert({ owner_breeder_id: user.id, size_id: null, registered_name: 'Sire' })
+          .select('id')
+          .single()
+        sireId = sireDog?.id ?? null
+
+        if (sireId) {
+          const testEntries = Object.entries(sireResults)
+          for (const [code, value] of testEntries) {
+            const testType = healthTests.find((t) => t.code === code)
+            if (testType) {
+              await supabase.from('dog_health_results').insert({
+                dog_id: sireId,
+                test_type_id: testType.id,
+                result_value: value,
+              })
+            }
+          }
+        }
+      }
+
+      if (form.dam_colour || Object.keys(damResults).length > 0) {
+        const { data: damDog } = await supabase
+          .from('dogs')
+          .insert({ owner_breeder_id: user.id, size_id: null, registered_name: 'Dam' })
+          .select('id')
+          .single()
+        damId = damDog?.id ?? null
+
+        if (damId) {
+          const testEntries = Object.entries(damResults)
+          for (const [code, value] of testEntries) {
+            const testType = healthTests.find((t) => t.code === code)
+            if (testType) {
+              await supabase.from('dog_health_results').insert({
+                dog_id: damId,
+                test_type_id: testType.id,
+                result_value: value,
+              })
+            }
+          }
+        }
+      }
+
+      const registry = registries.find((r) => r.code === form.registry_code)
+
+      const { data: listing, error: listingError } = await supabase
+        .from('listings')
+        .insert({
+          breeder_id: user.id,
+          listing_type: form.listing_type,
+          title: form.title,
+          description: form.description,
+          sex: form.sex,
+          size_id: null,
+          colour_id: null,
+          date_of_birth: form.date_of_birth || null,
+          ready_from: form.ready_from || null,
+          males_available: form.males_available ? Number(form.males_available) : null,
+          females_available: form.females_available ? Number(form.females_available) : null,
+          has_pedigree: form.has_pedigree === 'yes',
+          registry_id: registry?.id ?? null,
+          kennel_registration_name: form.kennel_registration_name || null,
+          registration_number: form.registration_number || null,
+          sire_id: sireId,
+          dam_id: damId,
+          price: form.price ? Number(form.price) : null,
+          currency_code: form.currency_code,
+          country_code: form.country_code,
+          sell_scope: form.sell_scope.length > 0 ? form.sell_scope[0] : null,
+          transport_options: form.transport_options.length > 0 ? form.transport_options : null,
+          microchipped: form.microchipped,
+          vaccinated: form.vaccinated,
+          status: 'PENDING',
+        })
+        .select('id')
+        .single()
+
+      if (listingError || !listing) {
+        setError(listingError?.message ?? 'Could not create listing.')
+        setSaving(false)
+        return
+      }
+
+      for (let i = 0; i < photos.length; i++) {
+        const file = photos[i]
+        if (!file) continue
+
+        const fileExt = file.name.split('.').pop()
+        const filePath = `${listing.id}/${i}.${fileExt}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('listing-photos')
+          .upload(filePath, file, { upsert: true })
+
+        if (uploadError) continue
+
+        const { data: publicUrlData } = supabase.storage.from('listing-photos').getPublicUrl(filePath)
+
+        await supabase.from('listing_photos').insert({
+          listing_id: listing.id,
+          url: publicUrlData.publicUrl,
+          sort_order: i,
+        })
+      }
+
+      router.push('/search')
+    } catch (err) {
+      setError('Something went wrong. Please try again.')
+    }
+
+    setSaving(false)
+  }
+
   return (
     <>
       <Header />
@@ -305,6 +452,20 @@ export default function PostAListingPage() {
                 <option value="PUPPY">Puppy</option>
                 <option value="YOUNG_DOG">Young dog</option>
                 <option value="ADULT_DOG">Adult dog</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Sex</label>
+              <select
+                value={form.sex}
+                onChange={(e) => update('sex', e.target.value)}
+                className="w-full border rounded-md px-3 py-2"
+              >
+                <option value="">Select</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="MIXED">Mixed (litter)</option>
               </select>
             </div>
 
@@ -539,25 +700,15 @@ export default function PostAListingPage() {
             <p className="text-sm text-gray-500">
               Tick each health test that has been carried out on the parents, and enter the result.
             </p>
-
             {renderParentHealthSection('Sire (father)', sireResults, setSireResults)}
             {renderParentHealthSection('Dam (mother)', damResults, setDamResults)}
-
             <div className="border-t pt-4 space-y-2">
               <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={form.microchipped}
-                  onChange={() => toggleBoolean('microchipped')}
-                />
+                <input type="checkbox" checked={form.microchipped} onChange={() => toggleBoolean('microchipped')} />
                 Puppy is microchipped
               </label>
               <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={form.vaccinated}
-                  onChange={() => toggleBoolean('vaccinated')}
-                />
+                <input type="checkbox" checked={form.vaccinated} onChange={() => toggleBoolean('vaccinated')} />
                 Puppy is vaccinated
               </label>
             </div>
@@ -638,40 +789,52 @@ export default function PostAListingPage() {
                     {t.label}
                   </label>
                 ))}
-                <label className="flex items-center gap-2 text-gray-500">
-                  <input type="checkbox" checked={form.transport_options.length === 0} readOnly disabled />
-                  No preference (leave all unchecked)
-                </label>
               </div>
             </div>
           </div>
         )}
 
-        {step > 4 && (
-          <div className="text-gray-400 italic py-12 text-center">
-            Step "{STEPS[step]}" coming soon...
+        {step === 5 && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500">Upload up to 3 photos. At least 1 photo is required.</p>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="border rounded-md p-4">
+                <label className="block text-sm font-medium mb-2">Photo {i + 1}</label>
+                {photoPreviews[i] && (
+                  <img src={photoPreviews[i]!} alt={`Preview ${i + 1}`} className="w-full h-48 object-cover rounded-md mb-2" />
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handlePhotoChange(i, e.target.files?.[0] ?? null)}
+                  className="w-full text-sm"
+                />
+              </div>
+            ))}
           </div>
         )}
 
         {error && <p className="text-red-600 text-sm mt-4">{error}</p>}
 
         <div className="flex justify-between mt-8">
-          <button
-            onClick={back}
-            disabled={step === 0}
-            className="px-4 py-2 border rounded-md disabled:opacity-30"
-          >
+          <button onClick={back} disabled={step === 0} className="px-4 py-2 border rounded-md disabled:opacity-30">
             Back
           </button>
-          <button
-            onClick={next}
-            disabled={step === STEPS.length - 1}
-            className="px-4 py-2 bg-black text-white rounded-md disabled:opacity-30"
-          >
-            Next
-          </button>
+          {step === STEPS.length - 1 ? (
+            <button
+              onClick={handleSubmit}
+              disabled={saving}
+              className="px-6 py-2 bg-black text-white rounded-md disabled:opacity-50"
+            >
+              {saving ? 'Publishing...' : 'Publish Listing'}
+            </button>
+          ) : (
+            <button onClick={next} className="px-4 py-2 bg-black text-white rounded-md">
+              Next
+            </button>
+          )}
         </div>
       </div>
     </>
   )
-    }
+                                        }
