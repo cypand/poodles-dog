@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Search, Plus, SlidersHorizontal } from "lucide-react";
 
 export default function Hero() {
@@ -16,12 +17,18 @@ export default function Hero() {
             responsible breeders.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <button className="bg-pd-gold text-pd-black font-bold text-sm px-6 py-3 flex items-center gap-2 hover:bg-pd-gold-light">
+            <Link
+              href="/search"
+              className="bg-pd-gold text-pd-black font-bold text-sm px-6 py-3 flex items-center gap-2 hover:bg-pd-gold-light"
+            >
               FIND POODLES <Search size={16} />
-            </button>
-            <button className="border border-white/30 font-bold text-sm px-6 py-3 flex items-center gap-2 hover:border-pd-gold hover:text-pd-gold">
+            </Link>
+            <Link
+              href="/post-a-listing"
+              className="border border-white/30 font-bold text-sm px-6 py-3 flex items-center gap-2 hover:border-pd-gold hover:text-pd-gold"
+            >
               POST A LISTING <Plus size={16} />
-            </button>
+            </Link>
           </div>
         </div>
         <div className="relative aspect-[4/3] w-full">
@@ -37,9 +44,12 @@ export default function Hero() {
           <SearchField label="SEX" placeholder="Any" />
           <SearchField label="COLOUR" placeholder="Any Colour" />
           <SearchField label="COUNTRY" placeholder="Worldwide" icon />
-          <button className="bg-pd-black text-white font-bold text-sm h-11 flex items-center justify-center gap-2 hover:bg-pd-black-2">
+          <Link
+            href="/search"
+            className="bg-pd-black text-white font-bold text-sm h-11 flex items-center justify-center gap-2 hover:bg-pd-black-2"
+          >
             SEARCH <Search size={16} />
-          </button>
+          </Link>
         </div>
         <button className="flex items-center gap-1 text-pd-gold text-xs font-bold mt-2">
           <SlidersHorizontal size={14} /> Advanced Filters
