@@ -15,6 +15,7 @@ type Listing = {
   sell_scope: string[] | null
   sex: string | null
   date_of_birth: string | null
+  created_at: string
   size: { code: string; label: string } | null
   colour: { code: string; label: string } | null
   country: { code: string; name: string; continent: string | null } | null
@@ -22,10 +23,13 @@ type Listing = {
   photos: { url: string; sort_order: number }[]
 }
 
+type SortOption = 'newest' | 'price_asc' | 'price_desc'
+
 function SearchResults() {
   const searchParams = useSearchParams()
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
+  const [sortBy, setSortBy] = useState<SortOption>('newest')
 
   const sizeFilter = searchParams.get('size')?.split(',').filter(Boolean) ?? []
   const sexFilter = searchParams.get('sex')?.split(',').filter(Boolean) ?? []
@@ -38,7 +42,7 @@ function SearchResults() {
       const { data } = await supabase
         .from('listings')
         .select(
-          `id, title, description, price, currency_code, country_code, sell_scope, sex, date_of_birth,
+          `id, title, description, price, currency_code, country_code, sell_scope, sex, date_of_birth, created_at,
            size:poodle_sizes(code, label),
            colour:poodle_colours(code, label),
            country:countries(code, name, continent),
@@ -77,20 +81,42 @@ function SearchResults() {
     return true
   })
 
+  const sortedListings = [...filteredListings].sort((a, b) => {
+    if (sortBy === 'price_asc') {
+      return (a.price ?? Infinity) - (b.price ?? Infinity)
+    }
+    if (sortBy === 'price_desc') {
+      return (b.price ?? -Infinity) - (a.price ?? -Infinity)
+    }
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
+
   return (
     <div className="max-w-5xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">
-        {filteredListings.length} {filteredListings.length === 1 ? 'listing' : 'listings'} found
-      </h1>
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <h1 className="text-2xl font-bold">
+          {sortedListings.length} {sortedListings.length === 1 ? 'listing' : 'listings'} found
+        </h1>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as SortOption)}
+          className="border rounded-md px-3 py-2 text-sm"
+        >
+          <option value="newest">Newest</option>
+          <option value="price_asc">Price: Low to High</option>
+          <option value="price_desc">Price: High to Low</option>
+        </select>
+      </div>
 
       {loading && <p className="text-gray-500">Loading...</p>}
 
-      {!loading && filteredListings.length === 0 && (
+      {!loading && sortedListings.length === 0 && (
         <p className="text-gray-500">No listings match your search yet.</p>
       )}
 
       <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {filteredListings.map((listing) => {
+        {sortedListings.map((listing) => {
           const photo = listing.photos?.sort((a, b) => a.sort_order - b.sort_order)[0]
           return (
             <div key={listing.id} className="border rounded-md overflow-hidden">
