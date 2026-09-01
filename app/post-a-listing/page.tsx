@@ -14,16 +14,21 @@ const PURPOSE_OPTIONS = [
 ]
 
 const SIZE_OPTIONS = [
-  { code: 'TOY', label: 'Toy' },
-  { code: 'MINIATURE', label: 'Miniature' },
-  { code: 'MEDIUM', label: 'Medium' },
-  { code: 'STANDARD', label: 'Standard' },
+  { code: 'TOY', label: 'Toy (24–28cm)' },
+  { code: 'MINIATURE', label: 'Miniature (28–35cm)' },
+  { code: 'MEDIUM', label: 'Medium (35–45cm)' },
+  { code: 'STANDARD', label: 'Standard (45–60cm)' },
 ]
 
-const RESULT_OPTIONS = [
+const DNA_RESULT_OPTIONS = [
   { value: 'CLEAR', label: 'Clear' },
   { value: 'CARRIER', label: 'Carrier' },
   { value: 'AFFECTED', label: 'Affected' },
+]
+
+const EXAM_RESULT_OPTIONS = [
+  { value: 'NORMAL', label: 'Normal' },
+  { value: 'ABNORMAL', label: 'Abnormal' },
 ]
 
 type ListingForm = {
@@ -133,16 +138,16 @@ export default function PostAListingPage() {
   }
 
   const toggleParentTest = (
-    parent: 'sire' | 'dam',
     code: string,
+    resultType: string,
     setter: React.Dispatch<React.SetStateAction<Record<string, string>>>
   ) => {
     setter((prev) => {
       const copy = { ...prev }
-      if (copy[code]) {
+      if (copy[code] !== undefined) {
         delete copy[code]
       } else {
-        copy[code] = 'CLEAR'
+        copy[code] = resultType === 'SCORE' ? '' : resultType === 'EXAM' ? 'NORMAL' : 'CLEAR'
       }
       return copy
     })
@@ -159,6 +164,42 @@ export default function PostAListingPage() {
   const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1))
   const back = () => setStep((s) => Math.max(s - 1, 0))
 
+  const renderResultInput = (
+    t: HealthTestType,
+    results: Record<string, string>,
+    setter: React.Dispatch<React.SetStateAction<Record<string, string>>>
+  ) => {
+    if (results[t.code] === undefined) return null
+
+    if (t.result_type === 'SCORE') {
+      return (
+        <input
+          type="text"
+          value={results[t.code]}
+          onChange={(e) => setParentTestResult(t.code, e.target.value, setter)}
+          placeholder="e.g. 0/0"
+          className="border rounded-md px-2 py-1 text-sm w-24"
+        />
+      )
+    }
+
+    const options = t.result_type === 'EXAM' ? EXAM_RESULT_OPTIONS : DNA_RESULT_OPTIONS
+
+    return (
+      <select
+        value={results[t.code]}
+        onChange={(e) => setParentTestResult(t.code, e.target.value, setter)}
+        className="border rounded-md px-2 py-1 text-sm"
+      >
+        {options.map((r) => (
+          <option key={r.value} value={r.value}>
+            {r.label}
+          </option>
+        ))}
+      </select>
+    )
+  }
+
   const renderParentHealthSection = (
     title: string,
     results: Record<string, string>,
@@ -171,24 +212,12 @@ export default function PostAListingPage() {
           <label className="flex items-center gap-2 flex-1">
             <input
               type="checkbox"
-              checked={!!results[t.code]}
-              onChange={() => toggleParentTest(title === 'Sire (father)' ? 'sire' : 'dam', t.code, setter)}
+              checked={results[t.code] !== undefined}
+              onChange={() => toggleParentTest(t.code, t.result_type, setter)}
             />
             <span className="text-sm">{t.label}</span>
           </label>
-          {results[t.code] && (
-            <select
-              value={results[t.code]}
-              onChange={(e) => setParentTestResult(t.code, e.target.value, setter)}
-              className="border rounded-md px-2 py-1 text-sm"
-            >
-              {RESULT_OPTIONS.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-          )}
+          {renderResultInput(t, results, setter)}
         </div>
       ))}
     </div>
@@ -293,7 +322,7 @@ export default function PostAListingPage() {
         {step === 1 && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Size</label>
+              <label className="block text-sm font-medium mb-1">Approximate adult size</label>
               <select
                 value={form.size_code}
                 onChange={(e) => update('size_code', e.target.value)}
@@ -309,7 +338,7 @@ export default function PostAListingPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Adult height (cm) — optional</label>
+              <label className="block text-sm font-medium mb-1">Exact adult height (cm) — optional</label>
               <input
                 type="number"
                 min="0"
@@ -453,7 +482,7 @@ export default function PostAListingPage() {
         {step === 3 && (
           <div className="space-y-6">
             <p className="text-sm text-gray-500">
-              Tick each health test that has been carried out on the parents, and select the result.
+              Tick each health test that has been carried out on the parents, and enter the result.
             </p>
 
             {renderParentHealthSection('Sire (father)', sireResults, setSireResults)}
@@ -507,4 +536,4 @@ export default function PostAListingPage() {
       </div>
     </>
   )
-}
+    }
