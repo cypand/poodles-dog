@@ -96,7 +96,7 @@ export default function Header() {
             <>
               <Link
   href="/profile"
-  className="text-white/80 text-xs
+  className="text-white/80 text-xs"
 >
   Woof, {displayName}
 </Link>
