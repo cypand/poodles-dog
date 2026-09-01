@@ -114,4 +114,14 @@ export default function Header() {
               </Link>
               <Link
                 href="/register"
-                className="bg-pd-gold text-pd-bla
+                className="bg-pd-gold text-pd-black px-4 py-2 text-xs font-bold hover:bg-pd-gold-light"
+              >
+                SIGN UP
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
