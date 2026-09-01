@@ -12,6 +12,11 @@ const SIZE_OPTIONS = [
   { code: 'STANDARD', label: 'Standard (45–60cm)' },
 ]
 
+const SEX_OPTIONS = [
+  { code: 'MALE', label: 'Male' },
+  { code: 'FEMALE', label: 'Female' },
+]
+
 const REGION_OPTIONS = [
   { code: 'EUROPE', label: 'Europe' },
   { code: 'UK', label: 'UK' },
@@ -32,10 +37,11 @@ export default function Hero() {
   const [countries, setCountries] = useState<Country[]>([])
 
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
+  const [selectedSexes, setSelectedSexes] = useState<string[]>([])
   const [selectedColours, setSelectedColours] = useState<string[]>([])
   const [selectedLocations, setSelectedLocations] = useState<string[]>([])
 
-  const [openPanel, setOpenPanel] = useState<'size' | 'colour' | 'location' | null>(null)
+  const [openPanel, setOpenPanel] = useState<'size' | 'sex' | 'colour' | 'location' | null>(null)
 
   useEffect(() => {
     const loadLookups = async () => {
@@ -64,6 +70,7 @@ export default function Hero() {
   const handleSearch = () => {
     const params = new URLSearchParams()
     if (selectedSizes.length > 0) params.set('size', selectedSizes.join(','))
+    if (selectedSexes.length > 0) params.set('sex', selectedSexes.join(','))
     if (selectedColours.length > 0) params.set('colour', selectedColours.join(','))
     if (selectedLocations.length > 0) params.set('location', selectedLocations.join(','))
     router.push(`/search?${params.toString()}`)
@@ -116,6 +123,15 @@ export default function Hero() {
             onToggleOption={(code) => toggle(selectedSizes, setSelectedSizes, code)}
           />
           <CheckboxField
+            label="SEX"
+            summary={summary(selectedSexes, SEX_OPTIONS, 'Any')}
+            isOpen={openPanel === 'sex'}
+            onToggleOpen={() => setOpenPanel(openPanel === 'sex' ? null : 'sex')}
+            options={SEX_OPTIONS}
+            selected={selectedSexes}
+            onToggleOption={(code) => toggle(selectedSexes, setSelectedSexes, code)}
+          />
+          <CheckboxField
             label="COLOUR"
             summary={summary(selectedColours, colours, 'Any Colour')}
             isOpen={openPanel === 'colour'}
@@ -135,7 +151,7 @@ export default function Hero() {
           />
           <button
             onClick={handleSearch}
-            className="bg-pd-black text-white font-bold text-sm h-11 flex items-center justify-center gap-2 hover:bg-pd-black-2 sm:col-span-2"
+            className="bg-pd-black text-white font-bold text-sm h-11 flex items-center justify-center gap-2 hover:bg-pd-black-2"
           >
             SEARCH <Search size={16} />
           </button>
