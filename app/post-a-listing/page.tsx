@@ -217,7 +217,33 @@ export default function PostAListingPage() {
     setPhotoPreviews(newPreviews)
   }
 
-  const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1))
+  const validateStep = (): string | null => {
+    if (step === 0) {
+      if (!form.listing_type) return 'Please select a listing type.'
+      if (!form.sex) return 'Please select the sex.'
+      if (!form.date_of_birth) return 'Please enter the date of birth.'
+    }
+    if (step === 1) {
+      if (!form.size_code) return 'Please select a size.'
+      if (!form.colour_code) return 'Please select a colour.'
+    }
+    if (step === 4) {
+      if (!form.price) return 'Please enter a price.'
+      if (!form.country_code) return 'Please select a country.'
+    }
+    return null
+  }
+
+  const next = () => {
+    const stepError = validateStep()
+    if (stepError) {
+      setError(stepError)
+      return
+    }
+    setError('')
+    setStep((s) => Math.min(s + 1, STEPS.length - 1))
+  }
+
   const back = () => setStep((s) => Math.max(s - 1, 0))
 
   const renderResultInput = (
@@ -277,13 +303,6 @@ export default function PostAListingPage() {
   )
 
   const validate = (): string | null => {
-    if (!form.listing_type) return 'Please select a listing type.'
-    if (!form.sex) return 'Please select the sex.'
-    if (!form.date_of_birth) return 'Please enter the date of birth.'
-    if (!form.size_code) return 'Please select a size.'
-    if (!form.colour_code) return 'Please select a colour.'
-    if (!form.price) return 'Please enter a price.'
-    if (!form.country_code) return 'Please select a country.'
     if (photos.every((p) => p === null)) return 'Please upload at least 1 photo.'
     return null
   }
@@ -837,4 +856,4 @@ export default function PostAListingPage() {
       </div>
     </>
   )
-                                        }
+                }
