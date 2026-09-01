@@ -1,4 +1,4 @@
-'use client'
+        'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -11,6 +11,13 @@ const PURPOSE_OPTIONS = [
   { code: 'PET_HOME', label: 'Pet home' },
   { code: 'SHOW_HOME', label: 'Show home' },
   { code: 'GROOMING_DOG', label: 'Grooming dog' },
+]
+
+const SIZE_OPTIONS = [
+  { code: 'TOY', label: 'Toy' },
+  { code: 'MINIATURE', label: 'Miniature' },
+  { code: 'MEDIUM', label: 'Medium' },
+  { code: 'STANDARD', label: 'Standard' },
 ]
 
 type ListingForm = {
@@ -27,6 +34,11 @@ type ListingForm = {
   sire_colour: string
   dam_colour: string
   purposes: string[]
+  kennel_registration_name: string
+  registry_code: string
+  registration_number: string
+  has_pedigree: string
+  parent_titles: string
 }
 
 type Colour = {
@@ -34,12 +46,11 @@ type Colour = {
   label: string
 }
 
-const SIZE_OPTIONS = [
-  { code: 'TOY', label: 'Toy' },
-  { code: 'MINIATURE', label: 'Miniature' },
-  { code: 'MEDIUM', label: 'Medium' },
-  { code: 'STANDARD', label: 'Standard' },
-]
+type Registry = {
+  id: number
+  code: string
+  name: string
+}
 
 export default function PostAListingPage() {
   const router = useRouter()
@@ -47,6 +58,7 @@ export default function PostAListingPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [colours, setColours] = useState<Colour[]>([])
+  const [registries, setRegistries] = useState<Registry[]>([])
 
   const [form, setForm] = useState<ListingForm>({
     listing_type: 'PUPPY',
@@ -62,17 +74,28 @@ export default function PostAListingPage() {
     sire_colour: '',
     dam_colour: '',
     purposes: [],
+    kennel_registration_name: '',
+    registry_code: '',
+    registration_number: '',
+    has_pedigree: '',
+    parent_titles: '',
   })
 
   useEffect(() => {
-    const loadColours = async () => {
-      const { data } = await supabase
+    const loadLookups = async () => {
+      const { data: coloursData } = await supabase
         .from('poodle_colours')
         .select('code, label')
         .order('label')
-      setColours(data ?? [])
+      setColours(coloursData ?? [])
+
+      const { data: registriesData } = await supabase
+        .from('registries')
+        .select('id, code, name')
+        .order('name')
+      setRegistries(registriesData ?? [])
     }
-    loadColours()
+    loadLookups()
   }, [])
 
   const update = (field: keyof ListingForm, value: string) => {
@@ -276,7 +299,82 @@ export default function PostAListingPage() {
           </div>
         )}
 
-        {step > 1 && (
+        {step === 2 && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Kennel name</label>
+              <input
+                type="text"
+                value={form.kennel_registration_name}
+                onChange={(e) => update('kennel_registration_name', e.target.value)}
+                className="w-full border rounded-md px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Kennel club</label>
+              <select
+                value={form.registry_code}
+                onChange={(e) => update('registry_code', e.target.value)}
+                className="w-full border rounded-md px-3 py-2"
+              >
+                <option value="">Select a kennel club</option>
+                {registries.map((r) => (
+                  <option key={r.code} value={r.code}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Registration number</label>
+              <input
+                type="text"
+                value={form.registration_number}
+                onChange={(e) => update('registration_number', e.target.value)}
+                className="w-full border rounded-md px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Do the parents have pedigree?</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="has_pedigree"
+                    checked={form.has_pedigree === 'yes'}
+                    onChange={() => update('has_pedigree', 'yes')}
+                  />
+                  Yes
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="has_pedigree"
+                    checked={form.has_pedigree === 'no'}
+                    onChange={() => update('has_pedigree', 'no')}
+                  />
+                  No
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Parent titles (optional)</label>
+              <input
+                type="text"
+                value={form.parent_titles}
+                onChange={(e) => update('parent_titles', e.target.value)}
+                placeholder="e.g. CH, INT CH"
+                className="w-full border rounded-md px-3 py-2"
+              />
+            </div>
+          </div>
+        )}
+
+        {step > 2 && (
           <div className="text-gray-400 italic py-12 text-center">
             Step "{STEPS[step]}" coming soon...
           </div>
