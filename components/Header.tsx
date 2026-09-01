@@ -94,9 +94,12 @@ export default function Header() {
 
           {loading ? null : displayName ? (
             <>
-              <span className="hidden sm:inline text-white/80 text-xs font-bold">
-                Hi, {displayName}
-              </span>
+              <Link
+  href="/profile"
+  className="hidden sm:inline text-white/80 text-xs font-bold hover:text-pd-gold"
+>
+  Woof, {displayName}
+</Link>
               <button
                 onClick={handleLogout}
                 className="border border-white/30 px-4 py-2 text-xs font-bold hover:border-pd-gold hover:text-pd-gold"
