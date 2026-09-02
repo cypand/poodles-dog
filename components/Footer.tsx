@@ -4,10 +4,6 @@ import { Facebook, Instagram, Youtube } from "lucide-react";
 
 const columns = [
   {
-    title: "COMPANY",
-    links: ["About Us", "How It Works", "Breeder Verification"],
-  },
-  {
     title: "USEFUL LINKS",
     links: ["Search Poodles", "Browse Breeders"],
   },
@@ -24,9 +20,6 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
           <div>
             <h3 className="text-lg font-bold mb-3">poodles.dog</h3>
-            <p className="text-sm text-gray-400">
-              Το μεγαλύτερο marketplace για poodles στην Ελλάδα.
-            </p>
             <div className="flex gap-4 mt-4">
               <Facebook className="w-5 h-5" />
               <Instagram className="w-5 h-5" />
