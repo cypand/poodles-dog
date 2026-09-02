@@ -10,11 +10,14 @@ import { supabase } from "@/lib/supabase/client";
 export default function Header() {
   const router = useRouter();
   const [displayName, setDisplayName] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingListingsCount, setPendingListingsCount] = useState(0);
   const [pendingReportsCount, setPendingReportsCount] = useState(0);
+
+  const isAdmin = role === "admin";
+  const canPostListing = role === "breeder" || role === "admin";
 
   useEffect(() => {
     const loadUser = async () => {
@@ -26,7 +29,7 @@ export default function Header() {
           .eq("id", user.id)
           .single();
         setDisplayName(profile?.display_name ?? "Account");
-        setIsAdmin(profile?.role === "admin");
+        setRole(profile?.role ?? null);
 
         const { count } = await supabase
           .from("inquiries")
@@ -50,7 +53,7 @@ export default function Header() {
         }
       } else {
         setDisplayName(null);
-        setIsAdmin(false);
+        setRole(null);
         setUnreadCount(0);
         setPendingListingsCount(0);
         setPendingReportsCount(0);
@@ -103,9 +106,11 @@ export default function Header() {
           <Link href="/breeders" className="hover:text-pd-gold">
             BREEDERS
           </Link>
-          <Link href="/post-a-listing" className="hover:text-pd-gold">
-            POST A LISTING
-          </Link>
+          {canPostListing && (
+            <Link href="/post-a-listing" className="hover:text-pd-gold">
+              POST A LISTING
+            </Link>
+          )}
           <Link href="/about" className="hover:text-pd-gold">
             ABOUT US
           </Link>
@@ -197,4 +202,4 @@ export default function Header() {
       </div>
     </header>
   );
-}
+} 
