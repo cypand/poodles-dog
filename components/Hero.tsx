@@ -105,6 +105,11 @@ export default function Hero() {
             The global marketplace for Poodle puppies and dogs from
             responsible breeders.
           </p>
+          <p className="mt-3 text-white/50 text-sm max-w-md">
+            poodles.dog has two sides: <strong className="text-white/70">buyers</strong> search
+            and contact breeders directly, while <strong className="text-white/70">breeders</strong> create
+            listings for their puppies. Choose the account type that fits you when you sign up.
+          </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <button
               onClick={handleSearch}
