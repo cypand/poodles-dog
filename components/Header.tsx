@@ -115,12 +115,20 @@ export default function Header() {
                 )}
               </Link>
               {isAdmin && (
-                <Link
-                  href="/admin/listings"
-                  className="border border-pd-gold text-pd-gold px-3 py-1 text-xs font-bold hover:bg-pd-gold hover:text-pd-black"
-                >
-                  ADMIN
-                </Link>
+                <>
+                  <Link
+                    href="/admin/listings"
+                    className="border border-pd-gold text-pd-gold px-3 py-1 text-xs font-bold hover:bg-pd-gold hover:text-pd-black"
+                  >
+                    ADMIN
+                  </Link>
+                  <Link
+                    href="/admin/reports"
+                    className="border border-white/30 px-3 py-1 text-xs font-bold hover:border-pd-gold hover:text-pd-gold"
+                  >
+                    REPORTS
+                  </Link>
+                </>
               )}
               <Link
                 href="/profile"
