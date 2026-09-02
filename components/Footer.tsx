@@ -3,11 +3,11 @@ import Link from "next/link";
 const columns = [
   {
     title: "USEFUL LINKS",
-    links: ["Search Poodles", "Browse Breeders"],
+    links: [{ label: "Search Poodles", href: "/search" }],
   },
   {
     title: "FOR BREEDERS",
-    links: ["Create Account", "Breeder Dashboard"],
+    links: [{ label: "Create Account", href: "/register" }],
   },
 ];
 
@@ -27,12 +27,12 @@ export default function Footer() {
               </h4>
               <ul className="space-y-2">
                 {col.links.map((link) => (
-                  <li key={link}>
+                  <li key={link.label}>
                     <Link
-                      href="#"
+                      href={link.href}
                       className="text-sm text-gray-400 hover:text-white transition-colors"
                     >
-                      {link}
+                      {link.label}
                     </Link>
                   </li>
                 ))}
