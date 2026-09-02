@@ -16,7 +16,7 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
@@ -25,6 +25,21 @@ export default function LoginPage() {
       setError(signInError.message)
       setLoading(false)
       return
+    }
+
+    if (signInData.user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('banned')
+        .eq('id', signInData.user.id)
+        .single()
+
+      if (profile?.banned) {
+        await supabase.auth.signOut()
+        setError('Your account has been suspended. Please contact support if you believe this is a mistake.')
+        setLoading(false)
+        return
+      }
     }
 
     router.push('/')
