@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
 
+const PROTECTED_ADMIN_EMAIL = 'cypand@gmail.com'
+
 type UserRow = {
   id: string
   display_name: string | null
@@ -90,6 +92,29 @@ export default function AdminUsersPage() {
     setActingId(null)
   }
 
+  const handleSetRole = async (userId: string, displayName: string | null, newRole: 'admin' | 'moderator') => {
+    if (!confirm(`Set ${displayName ?? 'this user'}'s role to ${newRole}?`)) return
+
+    setActingId(userId)
+    setError('')
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ role: newRole })
+      .eq('id', userId)
+
+    if (updateError) {
+      setError(updateError.message)
+      setActingId(null)
+      return
+    }
+
+    setUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
+    )
+    setActingId(null)
+  }
+
   const handleDeleteUser = async (userId: string, displayName: string | null) => {
     if (!confirm(`Permanently delete ${displayName ?? 'this user'}'s account? This cannot be undone.`)) return
 
@@ -147,7 +172,6 @@ export default function AdminUsersPage() {
     if (sortBy === 'listings') {
       return b.listing_count - a.listing_count
     }
-    // last_login (default)
     if (!a.last_sign_in_at) return 1
     if (!b.last_sign_in_at) return -1
     return new Date(b.last_sign_in_at).getTime() - new Date(a.last_sign_in_at).getTime()
@@ -175,55 +199,78 @@ export default function AdminUsersPage() {
         {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
 
         <div className="space-y-3">
-          {sortedUsers.map((u) => (
-            <div key={u.id} className="border rounded-md p-4 flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold">{u.display_name ?? 'Unnamed'}</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700 uppercase">
-                    {u.role}
-                  </span>
-                  {u.banned && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-700">
-                      BANNED
+          {sortedUsers.map((u) => {
+            const isProtected = u.email === PROTECTED_ADMIN_EMAIL
+            return (
+              <div key={u.id} className="border rounded-md p-4 flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold">{u.display_name ?? 'Unnamed'}</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700 uppercase">
+                      {u.role}
                     </span>
+                    {u.banned && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-700">
+                        BANNED
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500">{u.email ?? '—'}</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Last login:{' '}
+                    {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString() : 'Never'}
+                    {' · '}
+                    {u.listing_count} {u.listing_count === 1 ? 'listing' : 'listings'}
+                  </p>
+                </div>
+
+                <div className="flex gap-2 flex-wrap">
+                  {!isProtected && (
+                    <button
+                      onClick={() => toggleBan(u.id, u.banned)}
+                      disabled={actingId === u.id}
+                      className={`text-xs font-bold px-3 py-1.5 rounded disabled:opacity-50 ${
+                        u.banned
+                          ? 'border border-green-600 text-green-700 hover:bg-green-50'
+                          : 'border border-red-600 text-red-600 hover:bg-red-50'
+                      }`}
+                    >
+                      {actingId === u.id ? 'Updating...' : u.banned ? 'Unban' : 'Ban'}
+                    </button>
+                  )}
+                  {u.role !== 'admin' && (
+                    <button
+                      onClick={() => handleSetRole(u.id, u.display_name, 'admin')}
+                      disabled={actingId === u.id}
+                      className="text-xs font-bold px-3 py-1.5 rounded border border-pd-gold text-pd-gold hover:bg-pd-gold hover:text-pd-black disabled:opacity-50"
+                    >
+                      Admin
+                    </button>
+                  )}
+                  {u.role !== 'moderator' && (
+                    <button
+                      onClick={() => handleSetRole(u.id, u.display_name, 'moderator')}
+                      disabled={actingId === u.id}
+                      className="text-xs font-bold px-3 py-1.5 rounded border border-blue-600 text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                    >
+                      Moderator
+                    </button>
+                  )}
+                  {u.role !== 'admin' && !isProtected && (
+                    <button
+                      onClick={() => handleDeleteUser(u.id, u.display_name)}
+                      disabled={deletingId === u.id}
+                      className="text-xs font-bold px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {deletingId === u.id ? 'Deleting...' : 'Delete'}
+                    </button>
                   )}
                 </div>
-                <p className="text-sm text-gray-500">{u.email ?? '—'}</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Last login:{' '}
-                  {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString() : 'Never'}
-                  {' · '}
-                  {u.listing_count} {u.listing_count === 1 ? 'listing' : 'listings'}
-                </p>
               </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => toggleBan(u.id, u.banned)}
-                  disabled={actingId === u.id}
-                  className={`text-xs font-bold px-3 py-1.5 rounded disabled:opacity-50 ${
-                    u.banned
-                      ? 'border border-green-600 text-green-700 hover:bg-green-50'
-                      : 'border border-red-600 text-red-600 hover:bg-red-50'
-                  }`}
-                >
-                  {actingId === u.id ? 'Updating...' : u.banned ? 'Unban' : 'Ban'}
-                </button>
-                {u.role !== 'admin' && (
-                  <button
-                    onClick={() => handleDeleteUser(u.id, u.display_name)}
-                    disabled={deletingId === u.id}
-                    className="text-xs font-bold px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {deletingId === u.id ? 'Deleting...' : 'Delete'}
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </>
   )
-}
+} 
