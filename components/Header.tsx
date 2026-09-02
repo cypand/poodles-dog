@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Heart, ChevronDown } from "lucide-react";
+import { Heart, ChevronDown, MessageSquare } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 
 export default function Header() {
@@ -97,6 +97,9 @@ export default function Header() {
 
           {loading ? null : displayName ? (
             <>
+              <Link href="/inquiries" aria-label="Inquiries">
+                <MessageSquare size={18} />
+              </Link>
               {isAdmin && (
                 <Link
                   href="/admin/listings"
