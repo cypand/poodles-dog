@@ -88,11 +88,14 @@ type HealthTestType = { id: number; code: string; label: string; result_type: st
 type Currency = { code: string; symbol: string }
 type Country = { code: string; name: string }
 
+type AccessState = 'checking' | 'not_logged_in' | 'not_breeder' | 'allowed'
+
 export default function PostAListingPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [access, setAccess] = useState<AccessState>('checking')
 
   const [colours, setColours] = useState<Colour[]>([])
   const [sizes, setSizes] = useState<Size[]>([])
@@ -138,6 +141,31 @@ export default function PostAListingPage() {
   })
 
   useEffect(() => {
+    const checkAccess = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setAccess('not_logged_in')
+        return
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profile?.role === 'breeder' || profile?.role === 'admin') {
+        setAccess('allowed')
+      } else {
+        setAccess('not_breeder')
+      }
+    }
+    checkAccess()
+  }, [])
+
+  useEffect(() => {
+    if (access !== 'allowed') return
+
     const loadLookups = async () => {
       const { data: coloursData } = await supabase.from('poodle_colours').select('id, code, label').order('label')
       setColours(coloursData ?? [])
@@ -161,7 +189,7 @@ export default function PostAListingPage() {
       setCountries(countryData ?? [])
     }
     loadLookups()
-  }, [])
+  }, [access])
 
   const update = (field: keyof ListingForm, value: string) => {
     setForm({ ...form, [field]: value })
@@ -460,11 +488,62 @@ export default function PostAListingPage() {
       }
 
       router.push('/search')
-    } catch (err) {
+      } catch (err) {
       setError('Something went wrong. Please try again.')
     }
 
     setSaving(false)
+  }
+
+  if (access === 'checking') {
+    return (
+      <>
+        <Header />
+        <div className="max-w-2xl mx-auto mt-16 p-6 text-gray-500">Loading...</div>
+      </>
+    )
+  }
+
+  if (access === 'not_logged_in') {
+    return (
+      <>
+        <Header />
+        <div className="max-w-md mx-auto mt-16 p-6 text-center">
+          <h1 className="text-2xl font-bold mb-3">Sign in required</h1>
+          <p className="text-gray-600 mb-6">
+            You need to be signed in with a breeder account to post a listing.
+          </p>
+          <a
+            href="/login"
+            className="inline-block bg-black text-white font-bold px-6 py-3"
+          >
+            Sign in
+          </a>
+        </div>
+      </>
+    )
+  }
+
+  if (access === 'not_breeder') {
+    return (
+      <>
+        <Header />
+        <div className="max-w-md mx-auto mt-16 p-6 text-center">
+          <h1 className="text-2xl font-bold mb-3">Breeder account required</h1>
+          <p className="text-gray-600 mb-6">
+            Only breeder accounts can post listings. Your current account is registered as a
+            buyer. To post a listing, please create a separate account and select
+            <strong> "Breeder"</strong> during sign up.
+          </p>
+          <a
+            href="/register"
+            className="inline-block bg-black text-white font-bold px-6 py-3"
+          >
+            Create a breeder account
+          </a>
+        </div>
+      </>
+    )
   }
 
   return (
@@ -898,4 +977,4 @@ export default function PostAListingPage() {
       </div>
     </>
   )
-}
+              }
