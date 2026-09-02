@@ -17,6 +17,8 @@ type Listing = {
   sex: string | null
   date_of_birth: string | null
   created_at: string
+  has_pedigree: boolean | null
+  registry_id: number | null
   size: { code: string; label: string } | null
   colour: { code: string; label: string } | null
   country: { code: string; name: string; continent: string | null } | null
@@ -24,11 +26,14 @@ type Listing = {
   photos: { url: string; sort_order: number }[]
 }
 
+type Registry = { id: number; code: string; name: string }
+
 type SortOption = 'newest' | 'price_asc' | 'price_desc'
 
 function SearchResults() {
   const searchParams = useSearchParams()
   const [listings, setListings] = useState<Listing[]>([])
+  const [registries, setRegistries] = useState<Registry[]>([])
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState<SortOption>('newest')
   const [userId, setUserId] = useState<string | null>(null)
@@ -38,6 +43,10 @@ function SearchResults() {
   const sexFilter = searchParams.get('sex')?.split(',').filter(Boolean) ?? []
   const colourFilter = searchParams.get('colour')?.split(',').filter(Boolean) ?? []
   const locationFilter = searchParams.get('location')?.split(',').filter(Boolean) ?? []
+  const registryFilter = searchParams.get('registry')?.split(',').filter(Boolean) ?? []
+  const priceMinFilter = searchParams.get('price_min')
+  const priceMaxFilter = searchParams.get('price_max')
+  const pedigreeFilter = searchParams.get('pedigree') // 'yes' | 'no' | null
 
   useEffect(() => {
     const load = async () => {
@@ -50,6 +59,7 @@ function SearchResults() {
         .from('listings')
         .select(
           `id, title, description, price, currency_code, country_code, sell_scope, sex, date_of_birth, created_at,
+           has_pedigree, registry_id,
            size:poodle_sizes(code, label),
            colour:poodle_colours(code, label),
            country:countries(code, name, continent),
@@ -60,6 +70,9 @@ function SearchResults() {
         .order('created_at', { ascending: false })
 
       setListings((data as unknown as Listing[]) ?? [])
+
+      const { data: registryData } = await supabase.from('registries').select('id, code, name')
+      setRegistries(registryData ?? [])
 
       if (user) {
         const { data: favData } = await supabase
@@ -111,11 +124,37 @@ function SearchResults() {
     })
   }
 
+  const matchesRegistry = (listing: Listing): boolean => {
+    if (registryFilter.length === 0) return true
+    if (!listing.registry_id) return false
+    const registry = registries.find((r) => r.id === listing.registry_id)
+    if (!registry) return false
+    return registryFilter.includes(registry.code)
+  }
+
+  const matchesPrice = (listing: Listing): boolean => {
+    if (!priceMinFilter && !priceMaxFilter) return true
+    if (listing.price === null) return false
+    if (priceMinFilter && listing.price < Number(priceMinFilter)) return false
+    if (priceMaxFilter && listing.price > Number(priceMaxFilter)) return false
+    return true
+  }
+
+  const matchesPedigree = (listing: Listing): boolean => {
+    if (!pedigreeFilter) return true
+    if (pedigreeFilter === 'yes') return listing.has_pedigree === true
+    if (pedigreeFilter === 'no') return listing.has_pedigree === false
+    return true
+  }
+
   const filteredListings = listings.filter((l) => {
     if (sizeFilter.length > 0 && !sizeFilter.includes(l.size?.code ?? '')) return false
     if (sexFilter.length > 0 && !sexFilter.includes(l.sex ?? '')) return false
     if (colourFilter.length > 0 && !colourFilter.includes(l.colour?.code ?? '')) return false
     if (!matchesLocation(l)) return false
+    if (!matchesRegistry(l)) return false
+    if (!matchesPrice(l)) return false
+    if (!matchesPedigree(l)) return false
     return true
   })
 
