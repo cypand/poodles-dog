@@ -51,7 +51,7 @@ export default function AdminUsersPage() {
       setIsAdmin(true)
 
       const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch('/api/admin-users', {
+      const res = await fetch(`/api/admin-users?t=${Date.now()}`, {
         headers: { Authorization: `Bearer ${session?.access_token}` },
         cache: 'no-store',
       })
