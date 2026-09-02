@@ -22,6 +22,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserRow[]>([])
   const [error, setError] = useState('')
   const [actingId, setActingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -48,6 +49,7 @@ export default function AdminUsersPage() {
       const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/admin-users', {
         headers: { Authorization: `Bearer ${session?.access_token}` },
+        cache: 'no-store',
       })
 
       if (!res.ok) {
@@ -82,6 +84,33 @@ export default function AdminUsersPage() {
       prev.map((u) => (u.id === userId ? { ...u, banned: !currentlyBanned } : u))
     )
     setActingId(null)
+  }
+
+  const handleDeleteUser = async (userId: string, displayName: string | null) => {
+    if (!confirm(`Permanently delete ${displayName ?? 'this user'}'s account? This cannot be undone.`)) return
+
+    setDeletingId(userId)
+    setError('')
+
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/admin-users', {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${session?.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ user_id: userId }),
+    })
+
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      setError(json.error ?? 'Could not delete user.')
+      setDeletingId(null)
+      return
+    }
+
+    setUsers((prev) => prev.filter((u) => u.id !== userId))
+    setDeletingId(null)
   }
 
   if (loading) {
@@ -134,17 +163,28 @@ export default function AdminUsersPage() {
                 </p>
               </div>
 
-              <button
-                onClick={() => toggleBan(u.id, u.banned)}
-                disabled={actingId === u.id}
-                className={`text-xs font-bold px-3 py-1.5 rounded disabled:opacity-50 ${
-                  u.banned
-                    ? 'border border-green-600 text-green-700 hover:bg-green-50'
-                    : 'border border-red-600 text-red-600 hover:bg-red-50'
-                }`}
-              >
-                {actingId === u.id ? 'Updating...' : u.banned ? 'Unban' : 'Ban'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => toggleBan(u.id, u.banned)}
+                  disabled={actingId === u.id}
+                  className={`text-xs font-bold px-3 py-1.5 rounded disabled:opacity-50 ${
+                    u.banned
+                      ? 'border border-green-600 text-green-700 hover:bg-green-50'
+                      : 'border border-red-600 text-red-600 hover:bg-red-50'
+                  }`}
+                >
+                  {actingId === u.id ? 'Updating...' : u.banned ? 'Unban' : 'Ban'}
+                </button>
+                {u.role !== 'admin' && (
+                  <button
+                    onClick={() => handleDeleteUser(u.id, u.display_name)}
+                    disabled={deletingId === u.id}
+                    className="text-xs font-bold px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {deletingId === u.id ? 'Deleting...' : 'Delete'}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
