@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Heart, ShieldCheck, ArrowRight } from "lucide-react";
 
 const sampleListings = [
@@ -45,9 +46,12 @@ export default function FeaturedListings() {
       <div className="container-pd">
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-bold text-lg">FEATURED LISTINGS</h2>
-          <button className="text-pd-gold text-xs font-bold flex items-center gap-1">
+          <Link
+            href="/search"
+            className="text-pd-gold text-xs font-bold flex items-center gap-1"
+          >
             VIEW ALL LISTINGS <ArrowRight size={14} />
-          </button>
+          </Link>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
