@@ -77,6 +77,16 @@ export default function AdminListingsPage() {
     }
 
     setListings((prev) => prev.filter((l) => l.id !== listingId))
+
+    if (newStatus === 'ACTIVE') {
+      fetch('/api/notify-alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listing_id: listingId }),
+      }).catch(() => {
+        // Non-critical: alert emails failing shouldn't block the approval flow
+      })
+    }
   }
 
   if (loading) {
