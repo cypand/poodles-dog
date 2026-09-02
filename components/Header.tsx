@@ -156,6 +156,12 @@ export default function Header() {
                       </span>
                     )}
                   </Link>
+                  <Link
+                    href="/admin/users"
+                    className="border border-white/30 px-3 py-1 text-xs font-bold hover:border-pd-gold hover:text-pd-gold"
+                  >
+                    USERS
+                  </Link>
                 </>
               )}
               <Link
