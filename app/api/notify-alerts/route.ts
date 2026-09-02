@@ -36,21 +36,36 @@ export async function POST(req: NextRequest) {
 
     const { data: alerts } = await supabase.from('listing_alerts').select('*')
 
+    const normalize = (v: string | null | undefined) =>
+      (v ?? '').toUpperCase().replace(/\s+/g, '_')
+
     const matches = (alerts ?? []).filter((alert) => {
       if (alert.size_code && alert.size_code !== size?.code) return false
       if (alert.sex && alert.sex !== listing.sex) return false
       if (alert.colour_code && alert.colour_code !== colour?.code) return false
       if (alert.location_code) {
         const matchesLocation =
-          alert.location_code === listing.country_code ||
-          alert.location_code === country?.continent ||
+          normalize(alert.location_code) === normalize(listing.country_code) ||
+          normalize(alert.location_code) === normalize(country?.continent) ||
           alert.location_code === 'WORLDWIDE'
         if (!matchesLocation) return false
       }
       return true
     })
 
+    console.log('notify-alerts debug:', {
+      listing_id: listing.id,
+      listing_size: size?.code,
+      listing_sex: listing.sex,
+      listing_colour: colour?.code,
+      listing_country_code: listing.country_code,
+      listing_continent: country?.continent,
+      total_alerts: alerts?.length ?? 0,
+      matched_alerts: matches.length,
+    })
+
     if (matches.length === 0) {
+      console.log('notify-alerts: no matches found, no emails sent')
       return NextResponse.json({ sent: 0 })
     }
 
@@ -81,7 +96,12 @@ export async function POST(req: NextRequest) {
         }),
       })
 
-      if (res.ok) sentCount++
+      if (res.ok) {
+        sentCount++
+      } else {
+        const errText = await res.text()
+        console.log('notify-alerts: Resend send failed', { email: match.email, status: res.status, errText })
+      }
     }
 
     return NextResponse.json({ sent: sentCount })
