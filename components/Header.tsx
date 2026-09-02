@@ -12,6 +12,7 @@ export default function Header() {
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -24,9 +25,17 @@ export default function Header() {
           .single();
         setDisplayName(profile?.display_name ?? "Account");
         setIsAdmin(profile?.role === "admin");
+
+        const { count } = await supabase
+          .from("inquiries")
+          .select("id", { count: "exact", head: true })
+          .eq("breeder_id", user.id)
+          .eq("read", false);
+        setUnreadCount(count ?? 0);
       } else {
         setDisplayName(null);
         setIsAdmin(false);
+        setUnreadCount(0);
       }
       setLoading(false);
     };
@@ -97,8 +106,13 @@ export default function Header() {
 
           {loading ? null : displayName ? (
             <>
-              <Link href="/inquiries" aria-label="Inquiries">
+              <Link href="/inquiries" aria-label="Inquiries" className="relative">
                 <MessageSquare size={18} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-pd-gold text-pd-black text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </Link>
               {isAdmin && (
                 <Link
