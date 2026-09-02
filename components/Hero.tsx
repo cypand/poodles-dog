@@ -37,6 +37,7 @@ export default function Hero() {
   const [colours, setColours] = useState<Colour[]>([])
   const [countries, setCountries] = useState<Country[]>([])
   const [registries, setRegistries] = useState<Registry[]>([])
+  const [role, setRole] = useState<string | null>(null)
 
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [selectedSexes, setSelectedSexes] = useState<string[]>([])
@@ -46,11 +47,12 @@ export default function Hero() {
   const [openPanel, setOpenPanel] = useState<'size' | 'sex' | 'colour' | 'location' | null>(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
 
-  // Advanced filters
   const [priceMin, setPriceMin] = useState('')
   const [priceMax, setPriceMax] = useState('')
   const [selectedRegistries, setSelectedRegistries] = useState<string[]>([])
   const [pedigree, setPedigree] = useState<'' | 'yes' | 'no'>('')
+
+  const canPostListing = role === 'breeder' || role === 'admin'
 
   useEffect(() => {
     const loadLookups = async () => {
@@ -62,6 +64,12 @@ export default function Hero() {
 
       const { data: registryData } = await supabase.from('registries').select('code, name').order('name')
       setRegistries(registryData ?? [])
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        setRole(profile?.role ?? null)
+      }
     }
     loadLookups()
   }, [])
@@ -102,13 +110,18 @@ export default function Hero() {
             <span className="text-pd-gold">Anywhere in the world.</span>
           </h1>
           <p className="mt-4 text-white/70 max-w-md">
-            The global marketplace for Poodle puppies and dogs from
-            responsible breeders.
+            Connecting Poodle lovers with responsible breeders worldwide.
           </p>
-          <p className="mt-3 text-white/50 text-sm max-w-md">
-            poodles.dog has two sides: <strong className="text-white/70">buyers</strong> search
-            and contact breeders directly, while <strong className="text-white/70">breeders</strong> create
-            listings for their puppies. Choose the account type that fits you when you sign up.
+          <p className="mt-4 text-white/50 text-sm max-w-md font-semibold">
+            Two types of accounts:
+          </p>
+          <p className="mt-2 text-white/50 text-sm max-w-md">
+            <strong className="text-pd-gold">Buyers:</strong> Looking for your next Poodle?
+            Discover puppies and dogs from responsible breeders around the world.
+          </p>
+          <p className="mt-2 text-white/50 text-sm max-w-md">
+            <strong className="text-pd-gold">Breeders:</strong> Showcase your Poodles and
+            connect directly with people searching for their perfect companion.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <button
@@ -117,12 +130,14 @@ export default function Hero() {
             >
               FIND POODLES <Search size={16} />
             </button>
-            <a
-              href="/post-a-listing"
-              className="border border-white/30 font-bold text-sm px-6 py-3 flex items-center gap-2 hover:border-pd-gold hover:text-pd-gold"
-            >
-              POST A LISTING <Plus size={16} />
-            </a>
+            {canPostListing && (
+              <a
+                href="/post-a-listing"
+                className="border border-white/30 font-bold text-sm px-6 py-3 flex items-center gap-2 hover:border-pd-gold hover:text-pd-gold"
+              >
+                POST A LISTING <Plus size={16} />
+              </a>
+            )}
           </div>
         </div>
         <div className="relative aspect-[4/3] w-full">
