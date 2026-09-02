@@ -13,7 +13,10 @@ type UserRow = {
   created_at: string
   email: string | null
   last_sign_in_at: string | null
+  listing_count: number
 }
+
+type SortOption = 'last_login' | 'name' | 'newest' | 'listings'
 
 export default function AdminUsersPage() {
   const router = useRouter()
@@ -23,6 +26,7 @@ export default function AdminUsersPage() {
   const [error, setError] = useState('')
   const [actingId, setActingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<SortOption>('last_login')
 
   useEffect(() => {
     const load = async () => {
@@ -133,16 +137,45 @@ export default function AdminUsersPage() {
     )
   }
 
+  const sortedUsers = [...users].sort((a, b) => {
+    if (sortBy === 'name') {
+      return (a.display_name ?? '').localeCompare(b.display_name ?? '')
+    }
+    if (sortBy === 'newest') {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    }
+    if (sortBy === 'listings') {
+      return b.listing_count - a.listing_count
+    }
+    // last_login (default)
+    if (!a.last_sign_in_at) return 1
+    if (!b.last_sign_in_at) return -1
+    return new Date(b.last_sign_in_at).getTime() - new Date(a.last_sign_in_at).getTime()
+  })
+
   return (
     <>
       <Header />
       <div className="max-w-4xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-6">Users ({users.length})</h1>
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <h1 className="text-2xl font-bold">Users ({sortedUsers.length})</h1>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="border rounded-md px-3 py-2 text-sm"
+          >
+            <option value="last_login">Sort: Last login</option>
+            <option value="name">Sort: Name (A-Z)</option>
+            <option value="newest">Sort: Newest users</option>
+            <option value="listings">Sort: Most listings</option>
+          </select>
+        </div>
 
         {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
 
         <div className="space-y-3">
-          {users.map((u) => (
+          {sortedUsers.map((u) => (
             <div key={u.id} className="border rounded-md p-4 flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -160,6 +193,8 @@ export default function AdminUsersPage() {
                 <p className="text-xs text-gray-400 mt-1">
                   Last login:{' '}
                   {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString() : 'Never'}
+                  {' · '}
+                  {u.listing_count} {u.listing_count === 1 ? 'listing' : 'listings'}
                 </p>
               </div>
 
