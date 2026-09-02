@@ -56,6 +56,9 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             className="w-full border rounded-md px-3 py-2"
           />
+          <a href="/forgot-password" className="text-xs text-gray-500 underline mt-1 inline-block">
+            Forgot password?
+          </a>
         </div>
 
         {error && (
