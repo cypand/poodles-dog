@@ -30,12 +30,15 @@ type Registry = { id: number; code: string; name: string }
 
 type SortOption = 'newest' | 'price_asc' | 'price_desc'
 
+const PAGE_SIZE = 12
+
 function SearchResults() {
   const searchParams = useSearchParams()
   const [listings, setListings] = useState<Listing[]>([])
   const [registries, setRegistries] = useState<Registry[]>([])
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState<SortOption>('newest')
+  const [currentPage, setCurrentPage] = useState(1)
   const [userId, setUserId] = useState<string | null>(null)
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
 
@@ -86,6 +89,10 @@ function SearchResults() {
     }
     load()
   }, [])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchParams, sortBy])
 
   const toggleFavorite = async (listingId: string) => {
     if (!userId) {
@@ -168,6 +175,13 @@ function SearchResults() {
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   })
 
+  const totalPages = Math.max(1, Math.ceil(sortedListings.length / PAGE_SIZE))
+  const clampedPage = Math.min(currentPage, totalPages)
+  const paginatedListings = sortedListings.slice(
+    (clampedPage - 1) * PAGE_SIZE,
+    clampedPage * PAGE_SIZE
+  )
+
   return (
     <div className="max-w-5xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
@@ -193,7 +207,7 @@ function SearchResults() {
       )}
 
       <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {sortedListings.map((listing) => {
+        {paginatedListings.map((listing) => {
           const photo = listing.photos?.sort((a, b) => a.sort_order - b.sort_order)[0]
           const isFavorited = favoriteIds.has(listing.id)
           return (
@@ -235,6 +249,38 @@ function SearchResults() {
           )
         })}
       </div>
+
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-8 flex-wrap">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={clampedPage === 1}
+            className="px-3 py-2 border rounded-md text-sm disabled:opacity-30"
+          >
+            Prev
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+            <button
+              key={pageNum}
+              onClick={() => setCurrentPage(pageNum)}
+              className={`w-9 h-9 rounded-md text-sm font-semibold ${
+                pageNum === clampedPage
+                  ? 'bg-black text-white'
+                  : 'border text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {pageNum}
+            </button>
+          ))}
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={clampedPage === totalPages}
+            className="px-3 py-2 border rounded-md text-sm disabled:opacity-30"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   )
 }
