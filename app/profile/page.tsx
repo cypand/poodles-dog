@@ -1,4 +1,4 @@
-              'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -147,6 +147,15 @@ export default function ProfilePage() {
       <Header />
       <div className="max-w-2xl mx-auto mt-16 p-6">
         <h1 className="text-2xl font-bold mb-6">My Profile</h1>
+
+        {profile.role === 'breeder' && (
+          <a
+            href="/my-listings"
+            className="inline-block mb-6 bg-black text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-gray-800"
+          >
+            Go to my Breeder Dashboard (My Listings) →
+          </a>
+        )}
 
         <form onSubmit={handleSave} className="space-y-4">
           <div>
