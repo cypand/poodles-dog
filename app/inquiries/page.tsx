@@ -45,10 +45,25 @@ export default function InquiriesPage() {
     load()
   }, [])
 
-  const markAsRead = async (id: string) => {
-    await supabase.from('inquiries').update({ read: true }).eq('id', id)
-    setInquiries((prev) => prev.map((i) => (i.id === id ? { ...i, read: true } : i)))
+  const toggleRead = async (id: string, currentlyRead: boolean) => {
+    await supabase.from('inquiries').update({ read: !currentlyRead }).eq('id', id)
+    setInquiries((prev) => prev.map((i) => (i.id === id ? { ...i, read: !currentlyRead } : i)))
+    window.location.reload()
   }
+
+  const summaryByListing = inquiries.reduce<Record<string, { title: string; total: number; unread: number }>>(
+    (acc, inquiry) => {
+      const key = inquiry.listing_id
+      if (!acc[key]) {
+        acc[key] = { title: inquiry.listing?.title || 'Listing', total: 0, unread: 0 }
+      }
+      acc[key].total += 1
+      if (!inquiry.read) acc[key].unread += 1
+      return acc
+    },
+    {}
+  )
+  const summaryEntries = Object.entries(summaryByListing)
 
   if (notLoggedIn) {
     return (
@@ -68,6 +83,29 @@ export default function InquiriesPage() {
       <Header />
       <div className="max-w-3xl mx-auto p-6">
         <h1 className="text-2xl font-bold mb-6">Inquiries</h1>
+
+        {!loading && summaryEntries.length > 0 && (
+          <div className="border rounded-md p-4 mb-6 bg-gray-50">
+            <h2 className="text-sm font-bold mb-2">Messages per listing</h2>
+            <div className="space-y-1">
+              {summaryEntries.map(([listingId, s]) => (
+                <div key={listingId} className="flex items-center justify-between text-sm">
+                  <Link href={`/listing/${listingId}`} className="underline truncate max-w-[70%]">
+                    {s.title}
+                  </Link>
+                  <span className="text-gray-600">
+                    {s.total} {s.total === 1 ? 'message' : 'messages'}
+                    {s.unread > 0 && (
+                      <span className="ml-2 text-[10px] bg-pd-gold text-pd-black px-1.5 py-0.5 rounded font-bold">
+                        {s.unread} new
+                      </span>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {loading && <p className="text-gray-500">Loading...</p>}
 
@@ -110,14 +148,12 @@ export default function InquiriesPage() {
 
               <p className="text-sm mt-3 whitespace-pre-wrap">{inquiry.message}</p>
 
-              {!inquiry.read && (
-                <button
-                  onClick={() => markAsRead(inquiry.id)}
-                  className="mt-3 text-xs font-bold text-pd-black border px-3 py-1.5 hover:bg-gray-50"
-                >
-                  Mark as read
-                </button>
-              )}
+              <button
+                onClick={() => toggleRead(inquiry.id, inquiry.read)}
+                className="mt-3 text-xs font-bold text-pd-black border px-3 py-1.5 hover:bg-gray-50"
+              >
+                {inquiry.read ? 'Mark as unread' : 'Mark as read'}
+              </button>
             </div>
           ))}
         </div>
