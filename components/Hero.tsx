@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Plus, SlidersHorizontal } from 'lucide-react'
+import { Search, Plus, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 
 const SIZE_OPTIONS = [
@@ -30,11 +30,13 @@ const REGION_OPTIONS = [
 
 type Colour = { code: string; label: string }
 type Country = { code: string; name: string }
+type Registry = { code: string; name: string }
 
 export default function Hero() {
   const router = useRouter()
   const [colours, setColours] = useState<Colour[]>([])
   const [countries, setCountries] = useState<Country[]>([])
+  const [registries, setRegistries] = useState<Registry[]>([])
 
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [selectedSexes, setSelectedSexes] = useState<string[]>([])
@@ -42,6 +44,13 @@ export default function Hero() {
   const [selectedLocations, setSelectedLocations] = useState<string[]>([])
 
   const [openPanel, setOpenPanel] = useState<'size' | 'sex' | 'colour' | 'location' | null>(null)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
+  // Advanced filters
+  const [priceMin, setPriceMin] = useState('')
+  const [priceMax, setPriceMax] = useState('')
+  const [selectedRegistries, setSelectedRegistries] = useState<string[]>([])
+  const [pedigree, setPedigree] = useState<'' | 'yes' | 'no'>('')
 
   useEffect(() => {
     const loadLookups = async () => {
@@ -50,6 +59,9 @@ export default function Hero() {
 
       const { data: countryData } = await supabase.from('countries').select('code, name').order('name')
       setCountries(countryData ?? [])
+
+      const { data: registryData } = await supabase.from('registries').select('code, name').order('name')
+      setRegistries(registryData ?? [])
     }
     loadLookups()
   }, [])
@@ -73,6 +85,10 @@ export default function Hero() {
     if (selectedSexes.length > 0) params.set('sex', selectedSexes.join(','))
     if (selectedColours.length > 0) params.set('colour', selectedColours.join(','))
     if (selectedLocations.length > 0) params.set('location', selectedLocations.join(','))
+    if (priceMin) params.set('price_min', priceMin)
+    if (priceMax) params.set('price_max', priceMax)
+    if (selectedRegistries.length > 0) params.set('registry', selectedRegistries.join(','))
+    if (pedigree) params.set('pedigree', pedigree)
     router.push(`/search?${params.toString()}`)
   }
 
@@ -156,9 +172,70 @@ export default function Hero() {
             SEARCH <Search size={16} />
           </button>
         </div>
-        <button className="flex items-center gap-1 text-pd-gold text-xs font-bold mt-2">
+
+        <button
+          onClick={() => setShowAdvanced((v) => !v)}
+          className="flex items-center gap-1 text-pd-gold text-xs font-bold mt-2"
+        >
           <SlidersHorizontal size={14} /> Advanced Filters
+          {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
+
+        {showAdvanced && (
+          <div className="bg-white text-pd-black p-5 shadow-xl mt-2 grid sm:grid-cols-2 md:grid-cols-4 gap-5">
+            <div>
+              <span className="text-[10px] font-bold tracking-wide text-pd-gray block mb-1">PRICE (MIN)</span>
+              <input
+                type="number"
+                min="0"
+                value={priceMin}
+                onChange={(e) => setPriceMin(e.target.value)}
+                placeholder="e.g. 500"
+                className="border border-black/15 h-11 px-3 text-sm w-full"
+              />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold tracking-wide text-pd-gray block mb-1">PRICE (MAX)</span>
+              <input
+                type="number"
+                min="0"
+                value={priceMax}
+                onChange={(e) => setPriceMax(e.target.value)}
+                placeholder="e.g. 2000"
+                className="border border-black/15 h-11 px-3 text-sm w-full"
+              />
+            </div>
+
+            <MultiCheckField
+              label="REGISTRY"
+              options={registries.map((r) => ({ code: r.code, label: r.name }))}
+              selected={selectedRegistries}
+              onToggleOption={(code) => toggle(selectedRegistries, setSelectedRegistries, code)}
+            />
+
+            <div>
+              <span className="text-[10px] font-bold tracking-wide text-pd-gray block mb-1">PEDIGREE</span>
+              <select
+                value={pedigree}
+                onChange={(e) => setPedigree(e.target.value as '' | 'yes' | 'no')}
+                className="border border-black/15 h-11 px-3 text-sm w-full bg-white"
+              >
+                <option value="">Any</option>
+                <option value="yes">Pedigree only</option>
+                <option value="no">No pedigree</option>
+              </select>
+            </div>
+
+            <div className="sm:col-span-2 md:col-span-4 flex justify-end">
+              <button
+                onClick={handleSearch}
+                className="bg-pd-black text-white font-bold text-sm h-11 px-6 flex items-center justify-center gap-2 hover:bg-pd-black-2"
+              >
+                APPLY FILTERS <Search size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )
@@ -190,6 +267,53 @@ function CheckboxField({
         className="border border-black/15 h-11 px-3 text-sm bg-white text-left truncate"
       >
         {summary}
+      </button>
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 w-64 max-h-64 overflow-y-auto bg-white border border-black/15 shadow-lg z-20 p-2">
+          {options.map((opt) => (
+            <label key={opt.code} className="flex items-center gap-2 py-1 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selected.includes(opt.code)}
+                onChange={() => onToggleOption(opt.code)}
+              />
+              {opt.label}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MultiCheckField({
+  label,
+  options,
+  selected,
+  onToggleOption,
+}: {
+  label: string
+  options: { code: string; label: string }[]
+  selected: string[]
+  onToggleOption: (code: string) => void
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const summaryText =
+    selected.length === 0
+      ? 'Any'
+      : selected.length === 1
+      ? options.find((o) => o.code === selected[0])?.label ?? 'Any'
+      : `${selected.length} selected`
+
+  return (
+    <div className="relative flex flex-col gap-1">
+      <span className="text-[10px] font-bold tracking-wide text-pd-gray">{label}</span>
+      <button
+        type="button"
+        onClick={() => setIsOpen((v) => !v)}
+        className="border border-black/15 h-11 px-3 text-sm bg-white text-left truncate"
+      >
+        {summaryText}
       </button>
       {isOpen && (
         <div className="absolute top-full left-0 mt-1 w-64 max-h-64 overflow-y-auto bg-white border border-black/15 shadow-lg z-20 p-2">
