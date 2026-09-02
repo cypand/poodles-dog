@@ -175,34 +175,34 @@ export default function Hero() {
 
         <button
           onClick={() => setShowAdvanced((v) => !v)}
-          className="flex items-center gap-1 text-pd-gold text-xs font-bold mt-2"
+          className="flex items-center gap-1.5 text-pd-gold text-sm font-bold mt-3"
         >
-          <SlidersHorizontal size={14} /> Advanced Filters
-          {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          <SlidersHorizontal size={16} /> Advanced Filters
+          {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
 
         {showAdvanced && (
-          <div className="bg-white text-pd-black p-5 shadow-xl mt-2 grid sm:grid-cols-2 md:grid-cols-4 gap-5">
+          <div className="bg-white text-pd-black p-5 shadow-xl -mt-px grid sm:grid-cols-2 md:grid-cols-4 gap-5">
             <div>
-              <span className="text-[10px] font-bold tracking-wide text-pd-gray block mb-1">PRICE (MIN)</span>
+              <span className="text-xs font-bold tracking-wide text-pd-gray block mb-1.5">PRICE (MIN)</span>
               <input
                 type="number"
                 min="0"
                 value={priceMin}
                 onChange={(e) => setPriceMin(e.target.value)}
                 placeholder="e.g. 500"
-                className="border border-black/15 h-11 px-3 text-sm w-full"
+                className="border border-black/15 h-12 px-3 text-base w-full"
               />
             </div>
             <div>
-              <span className="text-[10px] font-bold tracking-wide text-pd-gray block mb-1">PRICE (MAX)</span>
+              <span className="text-xs font-bold tracking-wide text-pd-gray block mb-1.5">PRICE (MAX)</span>
               <input
                 type="number"
                 min="0"
                 value={priceMax}
                 onChange={(e) => setPriceMax(e.target.value)}
                 placeholder="e.g. 2000"
-                className="border border-black/15 h-11 px-3 text-sm w-full"
+                className="border border-black/15 h-12 px-3 text-base w-full"
               />
             </div>
 
@@ -214,11 +214,11 @@ export default function Hero() {
             />
 
             <div>
-              <span className="text-[10px] font-bold tracking-wide text-pd-gray block mb-1">PEDIGREE</span>
+              <span className="text-xs font-bold tracking-wide text-pd-gray block mb-1.5">PEDIGREE</span>
               <select
                 value={pedigree}
                 onChange={(e) => setPedigree(e.target.value as '' | 'yes' | 'no')}
-                className="border border-black/15 h-11 px-3 text-sm w-full bg-white"
+                className="border border-black/15 h-12 px-3 text-base w-full bg-white"
               >
                 <option value="">Any</option>
                 <option value="yes">Pedigree only</option>
@@ -229,9 +229,9 @@ export default function Hero() {
             <div className="sm:col-span-2 md:col-span-4 flex justify-end">
               <button
                 onClick={handleSearch}
-                className="bg-pd-black text-white font-bold text-sm h-11 px-6 flex items-center justify-center gap-2 hover:bg-pd-black-2"
+                className="bg-pd-black text-white font-bold text-base h-12 px-8 flex items-center justify-center gap-2 hover:bg-pd-black-2"
               >
-                APPLY FILTERS <Search size={16} />
+                APPLY FILTERS <Search size={18} />
               </button>
             </div>
           </div>
@@ -306,19 +306,19 @@ function MultiCheckField({
       : `${selected.length} selected`
 
   return (
-    <div className="relative flex flex-col gap-1">
-      <span className="text-[10px] font-bold tracking-wide text-pd-gray">{label}</span>
+    <div className="relative flex flex-col gap-1.5">
+      <span className="text-xs font-bold tracking-wide text-pd-gray">{label}</span>
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
-        className="border border-black/15 h-11 px-3 text-sm bg-white text-left truncate"
+        className="border border-black/15 h-12 px-3 text-base bg-white text-left truncate"
       >
         {summaryText}
       </button>
       {isOpen && (
         <div className="absolute top-full left-0 mt-1 w-64 max-h-64 overflow-y-auto bg-white border border-black/15 shadow-lg z-20 p-2">
           {options.map((opt) => (
-            <label key={opt.code} className="flex items-center gap-2 py-1 text-sm cursor-pointer">
+            <label key={opt.code} className="flex items-center gap-2 py-1.5 text-base cursor-pointer">
               <input
                 type="checkbox"
                 checked={selected.includes(opt.code)}
