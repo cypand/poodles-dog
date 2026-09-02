@@ -13,6 +13,7 @@ type Listing = {
   currency_code: string | null
   status: string
   created_at: string
+  expires_at: string | null
   photos: { url: string; sort_order: number }[]
 }
 
@@ -33,7 +34,7 @@ export default function MyListingsPage() {
 
       const { data } = await supabase
         .from('listings')
-        .select(`id, title, price, currency_code, status, created_at, photos:listing_photos(url, sort_order)`)
+        .select(`id, title, price, currency_code, status, created_at, expires_at, photos:listing_photos(url, sort_order)`)
         .eq('breeder_id', user.id)
         .order('created_at', { ascending: false })
 
@@ -67,15 +68,40 @@ export default function MyListingsPage() {
       PENDING: 'bg-yellow-100 text-yellow-700',
       REJECTED: 'bg-red-100 text-red-700',
       SOLD: 'bg-gray-100 text-gray-600',
+      EXPIRED: 'bg-orange-100 text-orange-700',
     }
     return styles[status] ?? 'bg-gray-100 text-gray-600'
+  }
+
+  const expiryText = (listing: Listing) => {
+    if (!listing.expires_at) return null
+    const expiresDate = new Date(listing.expires_at)
+    const now = new Date()
+
+    if (listing.status === 'EXPIRED' || expiresDate < now) {
+      return (
+        <span className="text-orange-600">
+          This listing has expired and is no longer visible in search. Delete it if the puppy has been sold, or contact us to reactivate.
+        </span>
+      )
+    }
+
+    const daysLeft = Math.ceil((expiresDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    return (
+      <span className="text-gray-400">
+        Active until {expiresDate.toLocaleDateString()} ({daysLeft} days left)
+      </span>
+    )
   }
 
   return (
     <>
       <Header />
       <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-6">My Listings</h1>
+        <h1 className="text-2xl font-bold mb-2">My Listings</h1>
+        <p className="text-sm text-gray-500 mb-6">
+          Listings stay active for 3 months from the date posted. If your puppy has been sold, please delete the listing right away.
+        </p>
 
         {loading && <p className="text-gray-500">Loading...</p>}
 
@@ -119,6 +145,7 @@ export default function MyListingsPage() {
                   <p className="text-sm font-bold mt-1">
                     {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
                   </p>
+                  <p className="text-xs mt-1">{expiryText(listing)}</p>
                   <button
                     onClick={() => handleDelete(listing.id)}
                     disabled={deletingId === listing.id}
