@@ -465,6 +465,14 @@ export default function PostAListingPage() {
         return
       }
 
+      fetch('/api/notify-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listing_id: listing.id }),
+      }).catch(() => {
+        // Non-critical: admin email failing shouldn't block listing creation
+      })
+
       for (let i = 0; i < photos.length; i++) {
         const file = photos[i]
         if (!file) continue
@@ -486,9 +494,8 @@ export default function PostAListingPage() {
           sort_order: i,
         })
       }
-
       router.push('/search')
-      } catch (err) {
+    } catch (err) {
       setError('Something went wrong. Please try again.')
     }
 
@@ -977,4 +984,4 @@ export default function PostAListingPage() {
       </div>
     </>
   )
-              }
+}
