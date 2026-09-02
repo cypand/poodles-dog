@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { Heart } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
@@ -223,28 +224,30 @@ function SearchResults() {
                   color={isFavorited ? '#c9a227' : '#000'}
                 />
               </button>
-              <div className="aspect-square bg-gray-100">
-                {photo ? (
-                  <img src={photo.url} alt={listing.title} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
-                    No photo
-                  </div>
-                )}
-              </div>
-              <div className="p-3">
-                <h2 className="font-semibold truncate">{listing.title || 'Untitled listing'}</h2>
-                <p className="text-sm text-gray-500">
-                  {listing.breeder?.kennel_name ?? 'Unknown kennel'}
-                </p>
-                <div className="flex justify-between items-center mt-2 text-sm">
-                  <span>{listing.size?.label ?? '—'}</span>
-                  <span>{listing.country?.name ?? '—'}</span>
+              <Link href={`/listing/${listing.id}`}>
+                <div className="aspect-square bg-gray-100">
+                  {photo ? (
+                    <img src={photo.url} alt={listing.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+                      No photo
+                    </div>
+                  )}
                 </div>
-                <p className="mt-2 font-bold">
-                  {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
-                </p>
-              </div>
+                <div className="p-3">
+                  <h2 className="font-semibold truncate">{listing.title || 'Untitled listing'}</h2>
+                  <p className="text-sm text-gray-500">
+                    {listing.breeder?.kennel_name ?? 'Unknown kennel'}
+                  </p>
+                  <div className="flex justify-between items-center mt-2 text-sm">
+                    <span>{listing.size?.label ?? '—'}</span>
+                    <span>{listing.country?.name ?? '—'}</span>
+                  </div>
+                  <p className="mt-2 font-bold">
+                    {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
+                  </p>
+                </div>
+              </Link>
             </div>
           )
         })}
