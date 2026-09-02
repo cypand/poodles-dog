@@ -115,7 +115,13 @@ export default function RegisterPage() {
 
   return (
     <div className="max-w-md mx-auto mt-16 p-6">
-      <h1 className="text-2xl font-bold mb-6">Create an account</h1>
+      <h1 className="text-2xl font-bold mb-2">Create an account</h1>
+      <p className="text-gray-600 text-sm mb-6">
+        poodles.dog has two sides: <strong>buyers</strong> search and contact
+        breeders directly, while <strong>breeders</strong> create listings for
+        their puppies. Pick the account type below that matches what you want
+        to do — you'll be able to update it later from your profile.
+      </p>
 
       <form onSubmit={handleRegister} className="space-y-4">
         <div>
