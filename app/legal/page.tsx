@@ -578,4 +578,4 @@ export default function LegalPage() {
       </section>
     </main>
   );
-}                                                                                                 }
+}
