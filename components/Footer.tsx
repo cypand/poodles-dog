@@ -1,6 +1,4 @@
-import Image from "next/image";
 import Link from "next/link";
-import { Facebook, Instagram, Youtube } from "lucide-react";
 
 const columns = [
   {
@@ -20,11 +18,6 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
           <div>
             <h3 className="text-lg font-bold mb-3">poodles.dog</h3>
-            <div className="flex gap-4 mt-4">
-              <Facebook className="w-5 h-5" />
-              <Instagram className="w-5 h-5" />
-              <Youtube className="w-5 h-5" />
-            </div>
           </div>
 
           {columns.map((col) => (
@@ -54,6 +47,13 @@ export default function Footer() {
           <Link href="/legal" className="hover:text-white transition-colors">
             Terms &amp; Privacy
           </Link>
+          <span className="hidden sm:inline">·</span>
+          <a
+            href="mailto:legal@poodles.dog"
+            className="hover:text-white transition-colors"
+          >
+            Contact Us
+          </a>
         </div>
       </div>
     </footer>
