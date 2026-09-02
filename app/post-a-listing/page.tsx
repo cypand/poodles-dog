@@ -454,6 +454,7 @@ export default function PostAListingPage() {
           transport_options: form.transport_options.length > 0 ? form.transport_options : null,
           microchipped: form.microchipped,
           vaccinated: form.vaccinated,
+          expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
           status: 'PENDING',
         })
         .select('id')
