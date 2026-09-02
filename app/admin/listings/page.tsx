@@ -13,9 +13,19 @@ type Listing = {
   currency_code: string | null
   status: string
   created_at: string
+  date_of_birth: string | null
   country: { name: string } | null
   breeder: { kennel_name: string } | null
   photos: { url: string; sort_order: number }[]
+}
+
+type SortOption = 'newest' | 'oldest' | 'age'
+
+const ageInMonths = (dob: string | null): number => {
+  if (!dob) return 9999
+  const birth = new Date(dob)
+  const now = new Date()
+  return (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth())
 }
 
 export default function AdminListingsPage() {
@@ -25,6 +35,7 @@ export default function AdminListingsPage() {
   const [listings, setListings] = useState<Listing[]>([])
   const [actionError, setActionError] = useState('')
   const [filter, setFilter] = useState<'PENDING' | 'ALL'>('PENDING')
+  const [sortBy, setSortBy] = useState<SortOption>('newest')
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -52,12 +63,11 @@ export default function AdminListingsPage() {
       let query = supabase
         .from('listings')
         .select(
-          `id, title, description, price, currency_code, status, created_at,
+          `id, title, description, price, currency_code, status, created_at, date_of_birth,
            country:countries(name),
            breeder:breeder_profiles(kennel_name),
            photos:listing_photos(url, sort_order)`
         )
-        .order('created_at', { ascending: filter === 'PENDING' })
 
       if (filter === 'PENDING') {
         query = query.eq('status', 'PENDING')
@@ -134,13 +144,36 @@ export default function AdminListingsPage() {
     )
   }
 
+  const sortedListings = [...listings].sort((a, b) => {
+    if (sortBy === 'oldest') {
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    }
+    if (sortBy === 'age') {
+      return ageInMonths(a.date_of_birth) - ageInMonths(b.date_of_birth)
+    }
+    // newest (default)
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
+
   return (
     <>
       <Header />
       <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-4">
-          {filter === 'PENDING' ? `Pending Listings (${listings.length})` : `All Listings (${listings.length})`}
-        </h1>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <h1 className="text-2xl font-bold">
+            {filter === 'PENDING' ? `Pending Listings (${sortedListings.length})` : `All Listings (${sortedListings.length})`}
+          </h1>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="border rounded-md px-3 py-2 text-sm"
+          >
+            <option value="newest">Sort: Newest</option>
+            <option value="oldest">Sort: Oldest</option>
+            <option value="age">Sort: Age (puppy first)</option>
+          </select>
+        </div>
 
         <div className="flex gap-2 mb-6">
           <button
@@ -163,12 +196,12 @@ export default function AdminListingsPage() {
 
         {actionError && <p className="text-red-600 text-sm mb-4">{actionError}</p>}
 
-        {listings.length === 0 && (
+        {sortedListings.length === 0 && (
           <p className="text-gray-500">No listings to show.</p>
         )}
 
         <div className="space-y-4">
-          {listings.map((listing) => {
+          {sortedListings.map((listing) => {
             const photo = listing.photos?.sort((a, b) => a.sort_order - b.sort_order)[0]
             return (
               <div key={listing.id} className="border rounded-md p-4 flex gap-4">
