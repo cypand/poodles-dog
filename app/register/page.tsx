@@ -19,36 +19,21 @@ export default function RegisterPage() {
     setError('')
     setLoading(true)
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          display_name: displayName,
+          role: role,
+        },
+      },
     })
 
     if (signUpError) {
       setError(signUpError.message)
       setLoading(false)
       return
-    }
-
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
-        display_name: displayName,
-        role: role,
-      })
-
-      if (profileError) {
-        setError(profileError.message)
-        setLoading(false)
-        return
-      }
-
-      if (role === 'breeder') {
-        await supabase.from('breeder_profiles').insert({
-          id: data.user.id,
-          kennel_name: displayName,
-        })
-      }
     }
 
     setLoading(false)
