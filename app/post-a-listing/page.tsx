@@ -412,6 +412,7 @@ export default function PostAListingPage() {
           ready_from: form.ready_from || null,
           males_available: form.males_available ? Number(form.males_available) : null,
           females_available: form.females_available ? Number(form.females_available) : null,
+          purpose: form.purposes.length > 0 ? form.purposes : null,
           has_pedigree: form.has_pedigree === 'yes',
           registry_id: registry?.id ?? null,
           kennel_registration_name: form.kennel_registration_name || null,
