@@ -37,6 +37,17 @@ export default function ProfilePage() {
   const [breeder, setBreeder] = useState<BreederProfile | null>(null)
   const [countries, setCountries] = useState<Country[]>([])
 
+  // Breeder request state
+  const [showRequestForm, setShowRequestForm] = useState(false)
+  const [requestStatus, setRequestStatus] = useState<string | null>(null)
+  const [requestSaving, setRequestSaving] = useState(false)
+  const [requestError, setRequestError] = useState('')
+  const [requestSuccess, setRequestSuccess] = useState(false)
+  const [reqKennelName, setReqKennelName] = useState('')
+  const [reqLitterParents, setReqLitterParents] = useState('')
+  const [reqLitterSize, setReqLitterSize] = useState('')
+  const [reqMessage, setReqMessage] = useState('')
+
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -69,6 +80,18 @@ export default function ProfilePage() {
           .single()
 
         setBreeder(breederData)
+      }
+
+      if (profileData?.role === 'buyer') {
+        const { data: existingRequest } = await supabase
+          .from('role_change_requests')
+          .select('status')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        setRequestStatus(existingRequest?.status ?? null)
       }
 
       setLoading(false)
@@ -122,6 +145,35 @@ export default function ProfilePage() {
 
     setSaving(false)
     setSuccess(true)
+  }
+
+  const handleSubmitRequest = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!profile) return
+
+    setRequestSaving(true)
+    setRequestError('')
+    setRequestSuccess(false)
+
+    const { error: insertError } = await supabase.from('role_change_requests').insert({
+      user_id: profile.id,
+      kennel_name: reqKennelName,
+      litter_parents: reqLitterParents,
+      litter_size: reqLitterSize,
+      message: reqMessage,
+      status: 'PENDING',
+    })
+
+    if (insertError) {
+      setRequestError(insertError.message)
+      setRequestSaving(false)
+      return
+    }
+
+    setRequestSaving(false)
+    setRequestSuccess(true)
+    setRequestStatus('PENDING')
+    setShowRequestForm(false)
   }
 
   if (loading) {
@@ -277,6 +329,109 @@ export default function ProfilePage() {
             {saving ? 'Saving...' : 'Save changes'}
           </button>
         </form>
+
+        {profile.role === 'buyer' && (
+          <>
+            <hr className="my-8" />
+            <h2 className="text-lg font-bold mb-2">Become a Breeder</h2>
+
+            {requestStatus === 'PENDING' && (
+              <p className="text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                Your request to become a breeder is pending review. We'll notify you once it's approved.
+              </p>
+            )}
+
+            {requestStatus === 'REJECTED' && (
+              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-3 mb-3">
+                Your previous request was not approved. You can submit a new one below.
+              </p>
+            )}
+
+            {(!requestStatus || requestStatus === 'REJECTED') && !showRequestForm && (
+              <>
+                <p className="text-sm text-gray-600 mb-3">
+                  Want to list puppies for sale? Tell us a bit about your litter and we'll review your request.
+                </p>
+                <button
+                  onClick={() => setShowRequestForm(true)}
+                  className="bg-black text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-gray-800"
+                >
+                  Request to become a breeder
+                </button>
+              </>
+            )}
+
+            {showRequestForm && (
+              <form onSubmit={handleSubmitRequest} className="space-y-4 mt-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Kennel name (if any)</label>
+                  <input
+                    type="text"
+                    value={reqKennelName}
+                    onChange={(e) => setReqKennelName(e.target.value)}
+                    className="w-full border rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Litter parents (sire &amp; dam — size, colour, registration if any)
+                  </label>
+                  <textarea
+                    required
+                    value={reqLitterParents}
+                    onChange={(e) => setReqLitterParents(e.target.value)}
+                    placeholder="e.g. Sire: Standard Poodle, apricot, KC registered. Dam: Standard Poodle, red."
+                    className="w-full border rounded-md px-3 py-2"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Litter size / number of puppies</label>
+                  <input
+                    type="text"
+                    required
+                    value={reqLitterSize}
+                    onChange={(e) => setReqLitterSize(e.target.value)}
+                    placeholder="e.g. 5 puppies (3 male, 2 female)"
+                    className="w-full border rounded-md px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Anything else we should know?</label>
+                  <textarea
+                    value={reqMessage}
+                    onChange={(e) => setReqMessage(e.target.value)}
+                    className="w-full border rounded-md px-3 py-2"
+                    rows={3}
+                  />
+                </div>
+
+                {requestError && <p className="text-red-600 text-sm">{requestError}</p>}
+                {requestSuccess && <p className="text-green-600 text-sm">Request submitted!</p>}
+
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={requestSaving}
+                    className="bg-black text-white rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+                  >
+                    {requestSaving ? 'Submitting...' : 'Submit request'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowRequestForm(false)}
+                    className="text-sm text-gray-500"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          </>
+        )}
       </div>
     </>
   )
