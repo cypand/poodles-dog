@@ -13,6 +13,8 @@ export default function Header() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingListingsCount, setPendingListingsCount] = useState(0);
+  const [pendingReportsCount, setPendingReportsCount] = useState(0);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -32,10 +34,26 @@ export default function Header() {
           .eq("breeder_id", user.id)
           .eq("read", false);
         setUnreadCount(count ?? 0);
+
+        if (profile?.role === "admin") {
+          const { count: pendingListings } = await supabase
+            .from("listings")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "PENDING");
+          setPendingListingsCount(pendingListings ?? 0);
+
+          const { count: pendingReports } = await supabase
+            .from("reports")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "PENDING");
+          setPendingReportsCount(pendingReports ?? 0);
+        }
       } else {
         setDisplayName(null);
         setIsAdmin(false);
         setUnreadCount(0);
+        setPendingListingsCount(0);
+        setPendingReportsCount(0);
       }
       setLoading(false);
     };
@@ -118,15 +136,25 @@ export default function Header() {
                 <>
                   <Link
                     href="/admin/listings"
-                    className="border border-pd-gold text-pd-gold px-3 py-1 text-xs font-bold hover:bg-pd-gold hover:text-pd-black"
+                    className="relative border border-pd-gold text-pd-gold px-3 py-1 text-xs font-bold hover:bg-pd-gold hover:text-pd-black"
                   >
                     ADMIN
+                    {pendingListingsCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-pd-gold text-pd-black text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                        {pendingListingsCount > 9 ? '9+' : pendingListingsCount}
+                      </span>
+                    )}
                   </Link>
                   <Link
                     href="/admin/reports"
-                    className="border border-white/30 px-3 py-1 text-xs font-bold hover:border-pd-gold hover:text-pd-gold"
+                    className="relative border border-white/30 px-3 py-1 text-xs font-bold hover:border-pd-gold hover:text-pd-gold"
                   >
                     REPORTS
+                    {pendingReportsCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                        {pendingReportsCount > 9 ? '9+' : pendingReportsCount}
+                      </span>
+                    )}
                   </Link>
                 </>
               )}
