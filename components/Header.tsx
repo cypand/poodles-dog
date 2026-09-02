@@ -59,7 +59,7 @@ export default function Header() {
 
   return (
     <header className="bg-pd-black text-white">
-      <div className="container-pd flex items-center justify-between h-20">
+      <div className="container-pd flex flex-wrap items-center justify-between gap-y-2 py-3 min-h-20">
         <Link href="/" className="flex items-center gap-2">
           <Image
             src="/logo-black-bg.png"
@@ -96,7 +96,7 @@ export default function Header() {
           </button>
         </nav>
 
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm ml-auto">
           <button className="hidden sm:flex items-center gap-1 text-white/80 hover:text-white">
             EN <ChevronDown size={12} />
           </button>
@@ -132,7 +132,7 @@ export default function Header() {
               )}
               <Link
                 href="/profile"
-                className="text-white/80 text-xs"
+                className="text-white/80 text-xs max-w-[110px] truncate"
               >
                 Woof, {displayName}
               </Link>
