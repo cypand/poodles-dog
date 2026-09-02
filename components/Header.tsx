@@ -58,8 +58,8 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-pd-black text-white">
-      <div className="container-pd flex flex-wrap items-center justify-between gap-y-2 py-3 min-h-20">
+    <header className="bg-pd-black text-white overflow-x-hidden">
+      <div className="container-pd flex flex-wrap items-center justify-between gap-y-2 py-3 min-h-20 min-w-0">
         <Link href="/" className="flex items-center gap-2">
           <Image
             src="/logo-black-bg.png"
@@ -96,7 +96,7 @@ export default function Header() {
           </button>
         </nav>
 
-        <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm ml-auto">
+        <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm">
           <button className="hidden sm:flex items-center gap-1 text-white/80 hover:text-white">
             EN <ChevronDown size={12} />
           </button>
