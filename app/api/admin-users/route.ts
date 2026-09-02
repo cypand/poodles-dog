@@ -40,12 +40,24 @@ export async function GET(req: NextRequest) {
 
     const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
 
+    const { data: listingCounts } = await supabaseAdmin
+      .from('listings')
+      .select('breeder_id')
+
+    const countMap: Record<string, number> = {}
+    for (const l of listingCounts ?? []) {
+      if (l.breeder_id) {
+        countMap[l.breeder_id] = (countMap[l.breeder_id] ?? 0) + 1
+      }
+    }
+
     const merged = (profiles ?? []).map((p) => {
       const authUser = authUsers?.users.find((u) => u.id === p.id)
       return {
         ...p,
         email: authUser?.email ?? null,
         last_sign_in_at: authUser?.last_sign_in_at ?? null,
+        listing_count: countMap[p.id] ?? 0,
       }
     })
 
@@ -55,7 +67,10 @@ export async function GET(req: NextRequest) {
       return new Date(b.last_sign_in_at).getTime() - new Date(a.last_sign_in_at).getTime()
     })
 
-    return NextResponse.json({ users: merged })
+    return NextResponse.json(
+      { users: merged },
+      { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0' } }
+    )
   } catch (err) {
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
   }
