@@ -23,7 +23,8 @@ export async function POST(req: NextRequest) {
       .eq('id', listing_id)
       .single()
 
-    const breeder = listing && Array.isArray(listing.breeder) ? listing.breeder[0] : listing?.breeder
+    const breederRaw = listing?.breeder as { kennel_name: string } | { kennel_name: string }[] | null | undefined
+    const breeder = Array.isArray(breederRaw) ? breederRaw[0] : breederRaw
     const listingTitle = listing?.title || 'Untitled listing'
     const kennelName = breeder?.kennel_name || 'Unknown kennel'
     const reviewUrl = 'https://poodles.dog/admin/listings'
