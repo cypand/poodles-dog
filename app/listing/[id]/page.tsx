@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { Flag } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
 
@@ -32,6 +33,14 @@ type ListingDetail = {
   photos: { url: string; sort_order: number }[]
 }
 
+const REPORT_REASONS = [
+  'Scam / fraudulent listing',
+  'Animal welfare concern',
+  'Fake or misleading photos',
+  'Inappropriate content',
+  'Other',
+]
+
 export default function ListingDetailPage() {
   const params = useParams()
   const listingId = params?.id as string
@@ -47,6 +56,14 @@ export default function ListingDetailPage() {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [sendError, setSendError] = useState('')
+
+  const [showReportForm, setShowReportForm] = useState(false)
+  const [reportReason, setReportReason] = useState('')
+  const [reportDetails, setReportDetails] = useState('')
+  const [reportEmail, setReportEmail] = useState('')
+  const [reportSending, setReportSending] = useState(false)
+  const [reportSent, setReportSent] = useState(false)
+  const [reportError, setReportError] = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -103,6 +120,35 @@ export default function ListingDetailPage() {
 
     setSent(true)
     setSending(false)
+  }
+
+  const handleSubmitReport = async () => {
+    if (!listing) return
+    setReportError('')
+
+    if (!reportReason) {
+      setReportError('Please select a reason.')
+      return
+    }
+
+    setReportSending(true)
+
+    const { error } = await supabase.from('reports').insert({
+      listing_id: listing.id,
+      reporter_email: reportEmail || null,
+      reason: reportReason,
+      details: reportDetails || null,
+      status: 'PENDING',
+    })
+
+    if (error) {
+      setReportError('Something went wrong submitting your report. Please try again.')
+      setReportSending(false)
+      return
+    }
+
+    setReportSent(true)
+    setReportSending(false)
   }
 
   if (loading) {
@@ -281,6 +327,87 @@ export default function ListingDetailPage() {
                 >
                   {sending ? 'Sending...' : 'Send message'}
                 </button>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4">
+            {!showReportForm ? (
+              <button
+                onClick={() => setShowReportForm(true)}
+                className="flex items-center gap-1.5 text-gray-500 text-xs font-medium hover:text-red-600"
+              >
+                <Flag size={13} /> Report this listing
+              </button>
+            ) : (
+              <div className="border rounded-md p-4">
+                <h3 className="font-semibold text-sm mb-3 flex items-center gap-1.5">
+                  <Flag size={14} /> Report this listing
+                </h3>
+
+                {reportSent ? (
+                  <p className="text-green-700 text-sm">
+                    Thanks, your report has been submitted. Our team will review it.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Reason</label>
+                      <select
+                        value={reportReason}
+                        onChange={(e) => setReportReason(e.target.value)}
+                        className="w-full border rounded-md px-3 py-2 text-sm"
+                      >
+                        <option value="">Select a reason</option>
+                        {REPORT_REASONS.map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        Details (optional)
+                      </label>
+                      <textarea
+                        value={reportDetails}
+                        onChange={(e) => setReportDetails(e.target.value)}
+                        rows={3}
+                        className="w-full border rounded-md px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        Your email (optional)
+                      </label>
+                      <input
+                        type="email"
+                        value={reportEmail}
+                        onChange={(e) => setReportEmail(e.target.value)}
+                        className="w-full border rounded-md px-3 py-2 text-sm"
+                      />
+                    </div>
+
+                    {reportError && <p className="text-red-600 text-sm">{reportError}</p>}
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSubmitReport}
+                        disabled={reportSending}
+                        className="flex-1 bg-red-600 text-white font-bold text-sm py-2 disabled:opacity-50"
+                      >
+                        {reportSending ? 'Submitting...' : 'Submit report'}
+                      </button>
+                      <button
+                        onClick={() => setShowReportForm(false)}
+                        className="px-4 py-2 border text-sm"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
