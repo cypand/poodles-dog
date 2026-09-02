@@ -78,8 +78,8 @@ export default function Newsletter() {
   }
 
   return (
-    <section className="bg-pd-black text-white py-8">
-      <div className="container-pd">
+    <section className="bg-pd-black text-white py-8 overflow-x-hidden">
+      <div className="container-pd min-w-0">
         <div className="flex items-center gap-3 mb-4">
           <Bell className="text-pd-gold" size={22} />
           <div>
@@ -96,7 +96,7 @@ export default function Newsletter() {
             You're all set! We'll email you when a matching listing is posted.
           </p>
         ) : (
-          <form onSubmit={handleSubmit} className="grid sm:grid-cols-2 md:grid-cols-5 gap-3">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
             <select
               value={size}
               onChange={(e) => setSize(e.target.value)}
@@ -174,3 +174,4 @@ export default function Newsletter() {
     </section>
   )
 }
+ 
