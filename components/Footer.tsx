@@ -48,8 +48,12 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="border-t border-gray-800 mt-10 pt-6 text-center text-sm text-gray-500">
-          © {new Date().getFullYear()} poodles.dog. All rights reserved.
+        <div className="border-t border-gray-800 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-center gap-2 text-center text-sm text-gray-500">
+          <span>© {new Date().getFullYear()} poodles.dog. All rights reserved.</span>
+          <span className="hidden sm:inline">·</span>
+          <Link href="/legal" className="hover:text-white transition-colors">
+            Terms &amp; Privacy
+          </Link>
         </div>
       </div>
     </footer>
