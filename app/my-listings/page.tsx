@@ -146,13 +146,21 @@ export default function MyListingsPage() {
                     {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
                   </p>
                   <p className="text-xs mt-1">{expiryText(listing)}</p>
-                  <button
-                    onClick={() => handleDelete(listing.id)}
-                    disabled={deletingId === listing.id}
-                    className="mt-3 text-xs font-bold text-red-600 border border-red-600 px-3 py-1.5 hover:bg-red-50 disabled:opacity-50"
-                  >
-                    {deletingId === listing.id ? 'Deleting...' : 'Delete listing'}
-                  </button>
+                  <div className="flex gap-2 mt-3 flex-wrap">
+                    <Link
+                      href={`/listing/${listing.id}/edit`}
+                      className="text-xs font-bold text-blue-600 border border-blue-600 px-3 py-1.5 hover:bg-blue-50"
+                    >
+                      Edit
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(listing.id)}
+                      disabled={deletingId === listing.id}
+                      className="text-xs font-bold text-red-600 border border-red-600 px-3 py-1.5 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {deletingId === listing.id ? 'Deleting...' : 'Delete listing'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )
