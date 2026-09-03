@@ -32,7 +32,7 @@ const ageInMonths = (dob: string | null): number => {
 export default function AdminListingsPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [hasAccess, setHasAccess] = useState(false)
   const [listings, setListings] = useState<Listing[]>([])
   const [actionError, setActionError] = useState('')
   const [filter, setFilter] = useState<'PENDING' | 'ALL'>('PENDING')
@@ -53,13 +53,13 @@ export default function AdminListingsPage() {
         .eq('id', user.id)
         .single()
 
-      if (profile?.role !== 'admin') {
-        setIsAdmin(false)
+      if (profile?.role !== 'admin' && profile?.role !== 'moderator') {
+        setHasAccess(false)
         setLoading(false)
         return
       }
 
-      setIsAdmin(true)
+      setHasAccess(true)
 
       let query = supabase
         .from('listings')
@@ -84,9 +84,16 @@ export default function AdminListingsPage() {
 
   const handleDecision = async (listingId: string, newStatus: 'ACTIVE' | 'REJECTED') => {
     setActionError('')
+
+    let rejectionReason: string | null = null
+    if (newStatus === 'REJECTED') {
+      rejectionReason = window.prompt('Reason for rejecting this listing (shown to the breeder):')
+      if (rejectionReason === null) return // cancelled
+    }
+
     const { error } = await supabase
       .from('listings')
-      .update({ status: newStatus })
+      .update({ status: newStatus, rejection_reason: rejectionReason })
       .eq('id', listingId)
 
     if (error) {
@@ -101,9 +108,7 @@ export default function AdminListingsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ listing_id: listingId }),
-      }).catch(() => {
-        // Non-critical: alert emails failing shouldn't block the approval flow
-      })
+      }).catch(() => {})
     }
   }
 
@@ -134,7 +139,7 @@ export default function AdminListingsPage() {
     )
   }
 
-  if (!isAdmin) {
+  if (!hasAccess) {
     return (
       <>
         <Header />
