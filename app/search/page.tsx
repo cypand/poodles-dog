@@ -33,6 +33,18 @@ type SortOption = 'newest' | 'price_asc' | 'price_desc'
 
 const PAGE_SIZE = 20
 
+const LOADING_MESSAGES = [
+  'Fetching the good boys and girls...',
+  'Sniffing out the best matches...',
+  'Herding the poodles into a list...',
+  'Chasing down the latest listings...',
+]
+
+const EMPTY_MESSAGES = [
+  "No matches yet — even the best noses need a moment to sniff these out.",
+  "Nothing here right now. Try widening your search — good dogs are worth the extra sniffing.",
+]
+
 function SearchResults() {
   const searchParams = useSearchParams()
   const [listings, setListings] = useState<Listing[]>([])
@@ -42,6 +54,9 @@ function SearchResults() {
   const [currentPage, setCurrentPage] = useState(1)
   const [userId, setUserId] = useState<string | null>(null)
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
+  const [banner, setBanner] = useState<string | null>(null)
+  const [loadingMessage] = useState(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)])
+  const [emptyMessage] = useState(EMPTY_MESSAGES[Math.floor(Math.random() * EMPTY_MESSAGES.length)])
 
   const sizeFilter = searchParams.get('size')?.split(',').filter(Boolean) ?? []
   const sexFilter = searchParams.get('sex')?.split(',').filter(Boolean) ?? []
@@ -51,6 +66,17 @@ function SearchResults() {
   const priceMinFilter = searchParams.get('price_min')
   const priceMaxFilter = searchParams.get('price_max')
   const pedigreeFilter = searchParams.get('pedigree')
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const justPublished = sessionStorage.getItem('poodles-just-published')
+      if (justPublished) {
+        setBanner("🐾 Off you go — one step closer to finding their forever home!")
+        sessionStorage.removeItem('poodles-just-published')
+        setTimeout(() => setBanner(null), 6000)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const load = async () => {
@@ -185,6 +211,12 @@ function SearchResults() {
 
   return (
     <div className="max-w-5xl mx-auto p-6">
+      {banner && (
+        <div className="bg-green-50 border border-green-200 text-green-800 rounded-md px-4 py-3 mb-4 text-sm">
+          {banner}
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h1 className="text-2xl font-bold">
           {sortedListings.length} {sortedListings.length === 1 ? 'listing' : 'listings'} found
@@ -201,10 +233,10 @@ function SearchResults() {
         </select>
       </div>
 
-      {loading && <p className="text-gray-500">Loading...</p>}
+      {loading && <p className="text-gray-500">{loadingMessage}</p>}
 
       {!loading && sortedListings.length === 0 && (
-        <p className="text-gray-500">No listings match your search yet.</p>
+        <p className="text-gray-500">{emptyMessage}</p>
       )}
 
       <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -292,7 +324,7 @@ export default function SearchPage() {
   return (
     <>
       <Header />
-      <Suspense fallback={<div className="max-w-5xl mx-auto p-6 text-gray-500">Loading...</div>}>
+      <Suspense fallback={<div className="max-w-5xl mx-auto p-6 text-gray-500">Fetching the good boys and girls...</div>}>
         <SearchResults />
       </Suspense>
     </>
