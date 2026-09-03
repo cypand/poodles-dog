@@ -226,14 +226,16 @@ export default function ProfilePage() {
     if (breeder.verification_status === 'rejected') {
       return <span className="text-xs font-bold px-2 py-1 rounded bg-red-100 text-red-700">Verification not approved — you can resubmit</span>
     }
-    return <span className="text-xs font-bold px-2 py-1 rounded bg-gray-100 text-gray-600">Not verified</span>
+    return <span className="text-xs font-bold px-2 py-1 rounded bg-pd-cream text-pd-gray">Not verified</span>
   }
 
   if (loading) {
     return (
       <>
         <Header />
-        <div className="max-w-2xl mx-auto mt-16 p-6">Loading...</div>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-2xl mx-auto p-6 text-pd-gray">Loading...</div>
+        </div>
       </>
     )
   }
@@ -242,7 +244,9 @@ export default function ProfilePage() {
     return (
       <>
         <Header />
-        <div className="max-w-2xl mx-auto mt-16 p-6">Profile not found.</div>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-2xl mx-auto p-6 text-pd-gray">Profile not found.</div>
+        </div>
       </>
     )
   }
@@ -250,283 +254,288 @@ export default function ProfilePage() {
   return (
     <>
       <Header />
-      <div className="max-w-2xl mx-auto mt-16 p-6">
-        <h1 className="text-2xl font-bold mb-6">My Profile</h1>
-
-        {profile.role === 'breeder' && (
-          <a
-            href="/my-listings"
-            className="inline-block mb-6 bg-black text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-gray-800"
-          >
-            Go to my Breeder Dashboard (My Listings) →
-          </a>
-        )}
-
-        <form onSubmit={handleSave} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Display name</label>
-            <input
-              type="text"
-              value={profile.display_name ?? ''}
-              onChange={(e) => setProfile({ ...profile, display_name: e.target.value })}
-              className="w-full border rounded-md px-3 py-2"
-            />
+      <div className="bg-pd-cream min-h-screen">
+        <div className="max-w-2xl mx-auto p-6">
+          <div className="bg-pd-black text-white rounded-md p-4 mb-6">
+            <h1 className="text-xl font-bold">My Profile</h1>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">City</label>
-            <input
-              type="text"
-              value={profile.city ?? ''}
-              onChange={(e) => setProfile({ ...profile, city: e.target.value })}
-              className="w-full border rounded-md px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Country</label>
-            <select
-              value={profile.country_code ?? ''}
-              onChange={(e) => setProfile({ ...profile, country_code: e.target.value || null })}
-              className="w-full border rounded-md px-3 py-2"
+          {profile.role === 'breeder' && (
+            <a
+              href="/my-listings"
+              className="inline-block mb-6 bg-pd-black text-pd-gold rounded-md px-4 py-2 text-sm font-medium hover:opacity-90"
             >
-              <option value="">Select a country</option>
-              {countries.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+              Go to my Breeder Dashboard (My Listings) →
+            </a>
+          )}
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Account type</label>
-            <p className="text-gray-600 capitalize">{profile.role}</p>
-          </div>
-
-          {profile.role === 'breeder' && breeder && (
-            <>
-              <hr className="my-6" />
-              <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
-                <h2 className="text-lg font-bold">Breeder details</h2>
-                {verificationBadge()}
-              </div>
-
+          <div className="bg-white border border-pd-black/10 rounded-md p-6">
+            <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Kennel name</label>
+                <label className="block text-sm font-medium mb-1 text-pd-black">Display name</label>
                 <input
                   type="text"
-                  value={breeder.kennel_name ?? ''}
-                  onChange={(e) => setBreeder({ ...breeder, kennel_name: e.target.value })}
-                  className="w-full border rounded-md px-3 py-2"
+                  value={profile.display_name ?? ''}
+                  onChange={(e) => setProfile({ ...profile, display_name: e.target.value })}
+                  className="w-full border border-pd-black/15 rounded-md px-3 py-2"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Years breeding</label>
+                <label className="block text-sm font-medium mb-1 text-pd-black">City</label>
+                <input
+                  type="text"
+                  value={profile.city ?? ''}
+                  onChange={(e) => setProfile({ ...profile, city: e.target.value })}
+                  className="w-full border border-pd-black/15 rounded-md px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1 text-pd-black">Country</label>
                 <select
-                  value={breeder.years_breeding?.toString() ?? ''}
-                  onChange={(e) => setBreeder({ ...breeder, years_breeding: e.target.value ? Number(e.target.value) : null })}
-                  className="w-full border rounded-md px-3 py-2"
+                  value={profile.country_code ?? ''}
+                  onChange={(e) => setProfile({ ...profile, country_code: e.target.value || null })}
+                  className="w-full border border-pd-black/15 rounded-md px-3 py-2"
                 >
-                  {YEARS_BREEDING_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
+                  <option value="">Select a country</option>
+                  {countries.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.name}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">About</label>
-                <textarea
-                  value={breeder.about ?? ''}
-                  onChange={(e) => setBreeder({ ...breeder, about: e.target.value })}
-                  className="w-full border rounded-md px-3 py-2"
-                  rows={4}
-                />
+                <label className="block text-sm font-medium mb-1 text-pd-black">Account type</label>
+                <p className="text-pd-gray capitalize">{profile.role}</p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Website</label>
-                <input
-                  type="url"
-                  value={breeder.website_url ?? ''}
-                  onChange={(e) => setBreeder({ ...breeder, website_url: e.target.value })}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
+              {profile.role === 'breeder' && breeder && (
+                <>
+                  <hr className="my-6 border-pd-black/10" />
+                  <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                    <h2 className="text-lg font-bold text-pd-black">Breeder details</h2>
+                    {verificationBadge()}
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Instagram</label>
-                <input
-                  type="url"
-                  value={breeder.instagram_url ?? ''}
-                  onChange={(e) => setBreeder({ ...breeder, instagram_url: e.target.value })}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-pd-black">Kennel name</label>
+                    <input
+                      type="text"
+                      value={breeder.kennel_name ?? ''}
+                      onChange={(e) => setBreeder({ ...breeder, kennel_name: e.target.value })}
+                      className="w-full border border-pd-black/15 rounded-md px-3 py-2"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Facebook</label>
-                <input
-                  type="url"
-                  value={breeder.facebook_url ?? ''}
-                  onChange={(e) => setBreeder({ ...breeder, facebook_url: e.target.value })}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-pd-black">Years breeding</label>
+                    <select
+                      value={breeder.years_breeding?.toString() ?? ''}
+                      onChange={(e) => setBreeder({ ...breeder, years_breeding: e.target.value ? Number(e.target.value) : null })}
+                      className="w-full border border-pd-black/15 rounded-md px-3 py-2"
+                    >
+                      {YEARS_BREEDING_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <hr className="my-4" />
-              <h3 className="font-bold text-sm">Get Verified</h3>
-              <p className="text-xs text-gray-500 mb-2">
-                Submit your kennel registration to earn a Verified Breeder badge. This builds trust with buyers.
-              </p>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-pd-black">About</label>
+                    <textarea
+                      value={breeder.about ?? ''}
+                      onChange={(e) => setBreeder({ ...breeder, about: e.target.value })}
+                      className="w-full border border-pd-black/15 rounded-md px-3 py-2"
+                      rows={4}
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Kennel registry number (optional)</label>
-                <input
-                  type="text"
-                  value={breeder.registry_number ?? ''}
-                  onChange={(e) => setBreeder({ ...breeder, registry_number: e.target.value })}
-                  placeholder="e.g. your national kennel club registration number"
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-pd-black">Website</label>
+                    <input
+                      type="url"
+                      value={breeder.website_url ?? ''}
+                      onChange={(e) => setBreeder({ ...breeder, website_url: e.target.value })}
+                      className="w-full border border-pd-black/15 rounded-md px-3 py-2"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Breeder certificate</label>
-                <p className="text-xs text-gray-500 mb-2">
-                  🔒 This document is private — it's only visible to our verification team and is
-                  never published, shown to buyers, or shared with anyone else.
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-pd-black">Instagram</label>
+                    <input
+                      type="url"
+                      value={breeder.instagram_url ?? ''}
+                      onChange={(e) => setBreeder({ ...breeder, instagram_url: e.target.value })}
+                      className="w-full border border-pd-black/15 rounded-md px-3 py-2"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-pd-black">Facebook</label>
+                    <input
+                      type="url"
+                      value={breeder.facebook_url ?? ''}
+                      onChange={(e) => setBreeder({ ...breeder, facebook_url: e.target.value })}
+                      className="w-full border border-pd-black/15 rounded-md px-3 py-2"
+                    />
+                  </div>
+
+                  <hr className="my-4 border-pd-black/10" />
+                  <h3 className="font-bold text-sm text-pd-black">Get Verified</h3>
+                  <p className="text-xs text-pd-gray mb-2">
+                    Submit your kennel registration to earn a Verified Breeder badge. This builds trust with buyers.
+                  </p>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-pd-black">Kennel registry number (optional)</label>
+                    <input
+                      type="text"
+                      value={breeder.registry_number ?? ''}
+                      onChange={(e) => setBreeder({ ...breeder, registry_number: e.target.value })}
+                      placeholder="e.g. your national kennel club registration number"
+                      className="w-full border border-pd-black/15 rounded-md px-3 py-2"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-pd-black">Breeder certificate</label>
+                    <p className="text-xs text-pd-gray mb-2">
+                      🔒 This document is private — it's only visible to our verification team and is
+                      never published, shown to buyers, or shared with anyone else.
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={(e) => setCertificateFile(e.target.files?.[0] ?? null)}
+                      className="w-full text-sm"
+                    />
+                    {breeder.certificate_path && (
+                      <p className="text-xs text-green-700 mt-1">A certificate is already on file.</p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {error && <p className="text-red-600 text-sm">{error}</p>}
+              {success && <p className="text-green-600 text-sm">Saved successfully.</p>}
+
+              <button
+                type="submit"
+                disabled={saving || uploadingCert}
+                className="w-full bg-pd-black text-pd-gold rounded-md py-2 font-medium disabled:opacity-50"
+              >
+                {saving || uploadingCert ? 'Saving...' : 'Save changes'}
+              </button>
+            </form>
+          </div>
+
+          {profile.role === 'buyer' && (
+            <div className="bg-white border border-pd-black/10 rounded-md p-6 mt-6">
+              <h2 className="text-lg font-bold mb-2 text-pd-black">Become a Breeder</h2>
+
+              {requestStatus === 'PENDING' && (
+                <p className="text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                  Your request to become a breeder is pending review. We'll notify you once it's approved.
                 </p>
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={(e) => setCertificateFile(e.target.files?.[0] ?? null)}
-                  className="w-full text-sm"
-                />
-                {breeder.certificate_path && (
-                  <p className="text-xs text-green-700 mt-1">A certificate is already on file.</p>
-                )}
-              </div>
-            </>
+              )}
+
+              {requestStatus === 'REJECTED' && (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-3 mb-3">
+                  Your previous request was not approved. You can submit a new one below.
+                </p>
+              )}
+
+              {(!requestStatus || requestStatus === 'REJECTED') && !showRequestForm && (
+                <>
+                  <p className="text-sm text-pd-gray mb-3">
+                    Want to list puppies for sale? Tell us a bit about your litter and we'll review your request.
+                  </p>
+                  <button
+                    onClick={() => setShowRequestForm(true)}
+                    className="bg-pd-black text-pd-gold rounded-md px-4 py-2 text-sm font-medium hover:opacity-90"
+                  >
+                    Request to become a breeder
+                  </button>
+                </>
+              )}
+
+              {showRequestForm && (
+                <form onSubmit={handleSubmitRequest} className="space-y-4 mt-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-pd-black">Kennel name (if any)</label>
+                    <input
+                      type="text"
+                      value={reqKennelName}
+                      onChange={(e) => setReqKennelName(e.target.value)}
+                      className="w-full border border-pd-black/15 rounded-md px-3 py-2"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-pd-black">
+                      Litter parents (sire &amp; dam — size, colour, registration if any)
+                    </label>
+                    <textarea
+                      required
+                      value={reqLitterParents}
+                      onChange={(e) => setReqLitterParents(e.target.value)}
+                      placeholder="e.g. Sire: Standard Poodle, apricot, KC registered. Dam: Standard Poodle, red."
+                      className="w-full border border-pd-black/15 rounded-md px-3 py-2"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-pd-black">Litter size / number of puppies</label>
+                    <input
+                      type="text"
+                      required
+                      value={reqLitterSize}
+                      onChange={(e) => setReqLitterSize(e.target.value)}
+                      placeholder="e.g. 5 puppies (3 male, 2 female)"
+                      className="w-full border border-pd-black/15 rounded-md px-3 py-2"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-pd-black">Anything else we should know?</label>
+                    <textarea
+                      value={reqMessage}
+                      onChange={(e) => setReqMessage(e.target.value)}
+                      className="w-full border border-pd-black/15 rounded-md px-3 py-2"
+                      rows={3}
+                    />
+                  </div>
+
+                  {requestError && <p className="text-red-600 text-sm">{requestError}</p>}
+                  {requestSuccess && <p className="text-green-600 text-sm">Request submitted!</p>}
+
+                  <div className="flex gap-3">
+                    <button
+                      type="submit"
+                      disabled={requestSaving}
+                      className="bg-pd-black text-pd-gold rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+                    >
+                      {requestSaving ? 'Submitting...' : 'Submit request'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowRequestForm(false)}
+                      className="text-sm text-pd-gray"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           )}
-
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-          {success && <p className="text-green-600 text-sm">Saved successfully.</p>}
-
-          <button
-            type="submit"
-            disabled={saving || uploadingCert}
-            className="w-full bg-black text-white rounded-md py-2 font-medium disabled:opacity-50"
-          >
-            {saving || uploadingCert ? 'Saving...' : 'Save changes'}
-          </button>
-        </form>
-
-        {profile.role === 'buyer' && (
-          <>
-            <hr className="my-8" />
-            <h2 className="text-lg font-bold mb-2">Become a Breeder</h2>
-
-            {requestStatus === 'PENDING' && (
-              <p className="text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-md p-3">
-                Your request to become a breeder is pending review. We'll notify you once it's approved.
-              </p>
-            )}
-
-            {requestStatus === 'REJECTED' && (
-              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-3 mb-3">
-                Your previous request was not approved. You can submit a new one below.
-              </p>
-            )}
-
-            {(!requestStatus || requestStatus === 'REJECTED') && !showRequestForm && (
-              <>
-                <p className="text-sm text-gray-600 mb-3">
-                  Want to list puppies for sale? Tell us a bit about your litter and we'll review your request.
-                </p>
-                <button
-                  onClick={() => setShowRequestForm(true)}
-                  className="bg-black text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-gray-800"
-                >
-                  Request to become a breeder
-                </button>
-              </>
-            )}
-
-            {showRequestForm && (
-              <form onSubmit={handleSubmitRequest} className="space-y-4 mt-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Kennel name (if any)</label>
-                  <input
-                    type="text"
-                    value={reqKennelName}
-                    onChange={(e) => setReqKennelName(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Litter parents (sire &amp; dam — size, colour, registration if any)
-                  </label>
-                  <textarea
-                    required
-                    value={reqLitterParents}
-                    onChange={(e) => setReqLitterParents(e.target.value)}
-                    placeholder="e.g. Sire: Standard Poodle, apricot, KC registered. Dam: Standard Poodle, red."
-                    className="w-full border rounded-md px-3 py-2"
-                    rows={3}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Litter size / number of puppies</label>
-                  <input
-                    type="text"
-                    required
-                    value={reqLitterSize}
-                    onChange={(e) => setReqLitterSize(e.target.value)}
-                    placeholder="e.g. 5 puppies (3 male, 2 female)"
-                    className="w-full border rounded-md px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">Anything else we should know?</label>
-                  <textarea
-                    value={reqMessage}
-                    onChange={(e) => setReqMessage(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2"
-                    rows={3}
-                  />
-                </div>
-
-                {requestError && <p className="text-red-600 text-sm">{requestError}</p>}
-                {requestSuccess && <p className="text-green-600 text-sm">Request submitted!</p>}
-
-                <div className="flex gap-3">
-                  <button
-                    type="submit"
-                    disabled={requestSaving}
-                    className="bg-black text-white rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-                  >
-                    {requestSaving ? 'Submitting...' : 'Submit request'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowRequestForm(false)}
-                    className="text-sm text-gray-500"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            )}
-          </>
-        )}
+        </div>
       </div>
     </>
   )
