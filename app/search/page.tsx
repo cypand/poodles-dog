@@ -212,20 +212,20 @@ function SearchResults() {
   return (
     <div className="max-w-5xl mx-auto p-6">
       {banner && (
-        <div className="bg-green-50 border border-green-200 text-green-800 rounded-md px-4 py-3 mb-4 text-sm">
+        <div className="bg-pd-gold/10 border border-pd-gold text-pd-black rounded-md px-4 py-3 mb-4 text-sm font-medium">
           {banner}
         </div>
       )}
 
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <h1 className="text-2xl font-bold">
+        <h1 className="text-2xl font-bold text-pd-black">
           {sortedListings.length} {sortedListings.length === 1 ? 'listing' : 'listings'} found
         </h1>
 
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as SortOption)}
-          className="border rounded-md px-3 py-2 text-sm"
+          className="border border-pd-black/15 rounded-md px-3 py-2 text-sm bg-white"
         >
           <option value="newest">Newest</option>
           <option value="price_asc">Price: Low to High</option>
@@ -233,10 +233,10 @@ function SearchResults() {
         </select>
       </div>
 
-      {loading && <p className="text-gray-500">{loadingMessage}</p>}
+      {loading && <p className="text-pd-gray">{loadingMessage}</p>}
 
       {!loading && sortedListings.length === 0 && (
-        <p className="text-gray-500">{emptyMessage}</p>
+        <p className="text-pd-gray">{emptyMessage}</p>
       )}
 
       <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -244,7 +244,7 @@ function SearchResults() {
           const photo = listing.photos?.sort((a, b) => a.sort_order - b.sort_order)[0]
           const isFavorited = favoriteIds.has(listing.id)
           return (
-            <div key={listing.id} className="border rounded-md overflow-hidden relative">
+            <div key={listing.id} className="bg-white border border-pd-black/10 rounded-md overflow-hidden relative shadow-sm hover:shadow-md transition-shadow">
               <button
                 onClick={() => toggleFavorite(listing.id)}
                 aria-label="Toggle favorite"
@@ -257,25 +257,25 @@ function SearchResults() {
                 />
               </button>
               <Link href={`/listing/${listing.id}`}>
-                <div className="aspect-square bg-gray-100">
+                <div className="aspect-square bg-pd-cream">
                   {photo ? (
                     <img src={photo.url} alt={listing.title} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+                    <div className="w-full h-full flex items-center justify-center text-pd-gray text-sm">
                       No photo
                     </div>
                   )}
                 </div>
                 <div className="p-3">
-                  <h2 className="font-semibold truncate">{listing.title || 'Untitled listing'}</h2>
-                  <p className="text-sm text-gray-500">
+                  <h2 className="font-semibold text-pd-black truncate">{listing.title || 'Untitled listing'}</h2>
+                  <p className="text-sm text-pd-gray">
                     {listing.breeder?.kennel_name ?? 'Unknown kennel'}
                   </p>
-                  <div className="flex justify-between items-center mt-2 text-sm">
+                  <div className="flex justify-between items-center mt-2 text-sm text-pd-gray">
                     <span>{listing.size?.label ?? '—'}</span>
                     <span>{listing.country?.name ?? '—'}</span>
                   </div>
-                  <p className="mt-2 font-bold">
+                  <p className="mt-2 font-bold text-pd-gold">
                     {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
                   </p>
                 </div>
@@ -290,7 +290,7 @@ function SearchResults() {
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={clampedPage === 1}
-            className="px-3 py-2 border rounded-md text-sm disabled:opacity-30"
+            className="px-3 py-2 border border-pd-black/15 rounded-md text-sm disabled:opacity-30 bg-white"
           >
             Prev
           </button>
@@ -300,8 +300,8 @@ function SearchResults() {
               onClick={() => setCurrentPage(pageNum)}
               className={`w-9 h-9 rounded-md text-sm font-semibold ${
                 pageNum === clampedPage
-                  ? 'bg-black text-white'
-                  : 'border text-gray-700 hover:bg-gray-50'
+                  ? 'bg-pd-black text-pd-gold'
+                  : 'border border-pd-black/15 bg-white text-pd-black hover:bg-pd-cream'
               }`}
             >
               {pageNum}
@@ -310,7 +310,7 @@ function SearchResults() {
           <button
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={clampedPage === totalPages}
-            className="px-3 py-2 border rounded-md text-sm disabled:opacity-30"
+            className="px-3 py-2 border border-pd-black/15 rounded-md text-sm disabled:opacity-30 bg-white"
           >
             Next
           </button>
@@ -324,7 +324,7 @@ export default function SearchPage() {
   return (
     <>
       <Header />
-      <Suspense fallback={<div className="max-w-5xl mx-auto p-6 text-gray-500">Fetching the good boys and girls...</div>}>
+      <Suspense fallback={<div className="max-w-5xl mx-auto p-6 text-pd-gray">Fetching the good boys and girls...</div>}>
         <SearchResults />
       </Suspense>
     </>
