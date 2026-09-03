@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Flag } from 'lucide-react'
+import { Flag, BadgeCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
 
@@ -29,7 +29,7 @@ type ListingDetail = {
   colour: { label: string } | null
   country: { name: string } | null
   registry: { name: string } | null
-  breeder: { kennel_name: string } | null
+  breeder: { kennel_name: string; verification_status: string } | null
   photos: { url: string; sort_order: number }[]
 }
 
@@ -80,7 +80,7 @@ export default function ListingDetailPage() {
            colour:poodle_colours(label),
            country:countries(name),
            registry:registries(name),
-           breeder:breeder_profiles(kennel_name),
+           breeder:breeder_profiles(kennel_name, verification_status),
            photos:listing_photos(url, sort_order)`
         )
         .eq('id', listingId)
@@ -88,6 +88,8 @@ export default function ListingDetailPage() {
 
       setListing((data as unknown as ListingDetail) ?? null)
       setLoading(false)
+
+      supabase.rpc('increment_listing_view', { listing_id_input: listingId }).then(() => {})
 
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
@@ -214,6 +216,7 @@ export default function ListingDetailPage() {
 
   const sortedPhotos = [...(listing.photos ?? [])].sort((a, b) => a.sort_order - b.sort_order)
   const isOwnListing = userId === listing.breeder_id
+  const isVerified = listing.breeder?.verification_status === 'verified'
 
   return (
     <>
@@ -261,8 +264,9 @@ export default function ListingDetailPage() {
               </a>
             )}
           </div>
-          <a href={`/breeder/${listing.breeder_id}`} className="text-gray-500 mb-4 hover:underline inline-block">
+          <a href={`/breeder/${listing.breeder_id}`} className="text-gray-500 mb-4 hover:underline inline-flex items-center gap-1">
             {listing.breeder?.kennel_name ?? 'Unknown kennel'}
+            {isVerified && <BadgeCheck size={16} className="text-green-600" />}
           </a>
 
           <p className="text-2xl font-bold text-pd-black mb-6">
