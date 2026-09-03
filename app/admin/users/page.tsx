@@ -7,11 +7,18 @@ import Header from '@/components/Header'
 
 const PROTECTED_ADMIN_EMAIL = 'cypand@gmail.com'
 
+const DURATION_OPTIONS = [
+  { label: '1 Day', hours: 24 },
+  { label: '1 Week', hours: 24 * 7 },
+  { label: '1 Month', hours: 24 * 30 },
+]
+
 type UserRow = {
   id: string
   display_name: string | null
   role: string
   banned: boolean
+  suspended_until: string | null
   created_at: string
   email: string | null
   last_sign_in_at: string | null
@@ -24,11 +31,15 @@ export default function AdminUsersPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isModerator, setIsModerator] = useState(false)
   const [users, setUsers] = useState<UserRow[]>([])
   const [error, setError] = useState('')
   const [actingId, setActingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<SortOption>('last_login')
+  const [suspendDurations, setSuspendDurations] = useState<Record<string, number>>({})
+
+  const hasAccess = isAdmin || isModerator
 
   useEffect(() => {
     const load = async () => {
@@ -44,13 +55,14 @@ export default function AdminUsersPage() {
         .eq('id', user.id)
         .single()
 
-      if (profile?.role !== 'admin') {
-        setIsAdmin(false)
+      if (profile?.role === 'admin') {
+        setIsAdmin(true)
+      } else if (profile?.role === 'moderator') {
+        setIsModerator(true)
+      } else {
         setLoading(false)
         return
       }
-
-      setIsAdmin(true)
 
       const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch(`/api/admin-users?t=${Date.now()}`, {
@@ -115,6 +127,64 @@ export default function AdminUsersPage() {
     setActingId(null)
   }
 
+  const handleSuspend = async (userId: string) => {
+    setActingId(userId)
+    setError('')
+
+    const hours = suspendDurations[userId] ?? 24
+
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/admin-users', {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${session?.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ user_id: userId, action: 'suspend', duration_hours: hours }),
+    })
+
+    const json = await res.json()
+
+    if (!res.ok) {
+      setError(json.error ?? 'Could not suspend user.')
+      setActingId(null)
+      return
+    }
+
+    setUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, suspended_until: json.suspended_until } : u))
+    )
+    setActingId(null)
+  }
+
+  const handleUnsuspend = async (userId: string) => {
+    setActingId(userId)
+    setError('')
+
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/admin-users', {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${session?.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ user_id: userId, action: 'unsuspend' }),
+    })
+
+    const json = await res.json()
+
+    if (!res.ok) {
+      setError(json.error ?? 'Could not unsuspend user.')
+      setActingId(null)
+      return
+    }
+
+    setUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, suspended_until: null } : u))
+    )
+    setActingId(null)
+  }
+
   const handleDeleteUser = async (userId: string, displayName: string | null) => {
     if (!confirm(`Permanently delete ${displayName ?? 'this user'}'s account? This cannot be undone.`)) return
 
@@ -151,7 +221,7 @@ export default function AdminUsersPage() {
     )
   }
 
-  if (!isAdmin) {
+  if (!hasAccess) {
     return (
       <>
         <Header />
@@ -182,7 +252,9 @@ export default function AdminUsersPage() {
       <Header />
       <div className="max-w-4xl mx-auto p-6">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-          <h1 className="text-2xl font-bold">Users ({sortedUsers.length})</h1>
+          <h1 className="text-2xl font-bold">
+            Users ({sortedUsers.length}) {isModerator && <span className="text-sm font-normal text-gray-500">— Moderator view</span>}
+          </h1>
 
           <select
             value={sortBy}
@@ -201,6 +273,9 @@ export default function AdminUsersPage() {
         <div className="space-y-3">
           {sortedUsers.map((u) => {
             const isProtected = u.email === PROTECTED_ADMIN_EMAIL
+            const isCurrentlySuspended = u.suspended_until && new Date(u.suspended_until) > new Date()
+            const canModerate = !isProtected && u.role !== 'admin'
+
             return (
               <div key={u.id} className="border rounded-md p-4 flex items-center justify-between gap-4 flex-wrap">
                 <div>
@@ -214,6 +289,11 @@ export default function AdminUsersPage() {
                         BANNED
                       </span>
                     )}
+                    {isCurrentlySuspended && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-100 text-orange-700">
+                        SUSPENDED until {new Date(u.suspended_until!).toLocaleString()}
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-gray-500">{u.email ?? '—'}</p>
                   <p className="text-xs text-gray-400 mt-1">
@@ -224,46 +304,85 @@ export default function AdminUsersPage() {
                   </p>
                 </div>
 
-                <div className="flex gap-2 flex-wrap">
-                  {!isProtected && (
-                    <button
-                      onClick={() => toggleBan(u.id, u.banned)}
-                      disabled={actingId === u.id}
-                      className={`text-xs font-bold px-3 py-1.5 rounded disabled:opacity-50 ${
-                        u.banned
-                          ? 'border border-green-600 text-green-700 hover:bg-green-50'
-                          : 'border border-red-600 text-red-600 hover:bg-red-50'
-                      }`}
-                    >
-                      {actingId === u.id ? 'Updating...' : u.banned ? 'Unban' : 'Ban'}
-                    </button>
-                  )}
-                  {u.role !== 'admin' && (
-                    <button
-                      onClick={() => handleSetRole(u.id, u.display_name, 'admin')}
-                      disabled={actingId === u.id}
-                      className="text-xs font-bold px-3 py-1.5 rounded border border-pd-gold text-pd-gold hover:bg-pd-gold hover:text-pd-black disabled:opacity-50"
-                    >
-                      Admin
-                    </button>
-                  )}
-                  {u.role !== 'moderator' && (
-                    <button
-                      onClick={() => handleSetRole(u.id, u.display_name, 'moderator')}
-                      disabled={actingId === u.id}
-                      className="text-xs font-bold px-3 py-1.5 rounded border border-blue-600 text-blue-700 hover:bg-blue-50 disabled:opacity-50"
-                    >
-                      Moderator
-                    </button>
-                  )}
-                  {u.role !== 'admin' && !isProtected && (
-                    <button
-                      onClick={() => handleDeleteUser(u.id, u.display_name)}
-                      disabled={deletingId === u.id}
-                      className="text-xs font-bold px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                    >
-                      {deletingId === u.id ? 'Deleting...' : 'Delete'}
-                    </button>
+                <div className="flex flex-col gap-2 items-end">
+                  <div className="flex gap-2 flex-wrap">
+                    {isAdmin && !isProtected && (
+                      <button
+                        onClick={() => toggleBan(u.id, u.banned)}
+                        disabled={actingId === u.id}
+                        className={`text-xs font-bold px-3 py-1.5 rounded disabled:opacity-50 ${
+                          u.banned
+                            ? 'border border-green-600 text-green-700 hover:bg-green-50'
+                            : 'border border-red-600 text-red-600 hover:bg-red-50'
+                        }`}
+                      >
+                        {actingId === u.id ? 'Updating...' : u.banned ? 'Unban' : 'Ban'}
+                      </button>
+                    )}
+                    {isAdmin && u.role !== 'admin' && (
+                      <button
+                        onClick={() => handleSetRole(u.id, u.display_name, 'admin')}
+                        disabled={actingId === u.id}
+                        className="text-xs font-bold px-3 py-1.5 rounded border border-pd-gold text-pd-gold hover:bg-pd-gold hover:text-pd-black disabled:opacity-50"
+                      >
+                        Admin
+                      </button>
+                    )}
+                    {isAdmin && u.role !== 'moderator' && (
+                      <button
+                        onClick={() => handleSetRole(u.id, u.display_name, 'moderator')}
+                        disabled={actingId === u.id}
+                        className="text-xs font-bold px-3 py-1.5 rounded border border-blue-600 text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                      >
+                        Moderator
+                      </button>
+                    )}
+                    {isAdmin && u.role !== 'admin' && !isProtected && (
+                      <button
+                        onClick={() => handleDeleteUser(u.id, u.display_name)}
+                        disabled={deletingId === u.id}
+                        className="text-xs font-bold px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                      >
+                        {deletingId === u.id ? 'Deleting...' : 'Delete'}
+                      </button>
+                    )}
+                  </div>
+
+                  {canModerate && (
+                    <div className="flex gap-2 items-center">
+                      {isCurrentlySuspended ? (
+                        <button
+                          onClick={() => handleUnsuspend(u.id)}
+                          disabled={actingId === u.id}
+                          className="text-xs font-bold px-3 py-1.5 rounded border border-green-600 text-green-700 hover:bg-green-50 disabled:opacity-50"
+                        >
+                          {actingId === u.id ? 'Updating...' : 'Unsuspend'}
+                        </button>
+                      ) : (
+                        <>
+                          <select
+                            value={suspendDurations[u.id] ?? 24}
+                            onChange={(e) =>
+                              setSuspendDurations((prev) => ({ ...prev, [u.id]: Number(e.target.value) }))
+                            }
+                            className="text-xs border rounded px-2 py-1.5"
+                          >
+                            {DURATION_OPTIONS.map((opt) => (
+                              <option key={opt.hours} value={opt.hours}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => handleSuspend(u.id)}
+                            disabled={actingId === u.id}
+                            className="text-xs font-bold px-3 py-1.5 rounded border border-orange-600 text-orange-700 hover:bg-orange-50 disabled:opacity-50"
+                          >
+                            {actingId === u.id ? 'Updating...' : 'Suspend'}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
