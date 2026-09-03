@@ -14,6 +14,7 @@ type Listing = {
   status: string
   created_at: string
   expires_at: string | null
+  rejection_reason: string | null
   photos: { url: string; sort_order: number }[]
 }
 
@@ -34,7 +35,7 @@ export default function MyListingsPage() {
 
       const { data } = await supabase
         .from('listings')
-        .select(`id, title, price, currency_code, status, created_at, expires_at, photos:listing_photos(url, sort_order)`)
+        .select(`id, title, price, currency_code, status, created_at, expires_at, rejection_reason, photos:listing_photos(url, sort_order)`)
         .eq('breeder_id', user.id)
         .order('created_at', { ascending: false })
 
@@ -145,6 +146,9 @@ export default function MyListingsPage() {
                   <p className="text-sm font-bold mt-1">
                     {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
                   </p>
+                  {listing.status === 'REJECTED' && listing.rejection_reason && (
+                    <p className="text-xs text-red-600 mt-1">Reason: {listing.rejection_reason}</p>
+                  )}
                   <p className="text-xs mt-1">{expiryText(listing)}</p>
                   <div className="flex gap-2 mt-3 flex-wrap">
                     <Link
