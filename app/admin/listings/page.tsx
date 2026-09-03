@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
+import { logAudit } from '@/lib/audit'
 import Header from '@/components/Header'
 
 type Listing = {
@@ -82,13 +83,13 @@ export default function AdminListingsPage() {
     load()
   }, [router, filter])
 
-  const handleDecision = async (listingId: string, newStatus: 'ACTIVE' | 'REJECTED') => {
+  const handleDecision = async (listingId: string, listingTitle: string, newStatus: 'ACTIVE' | 'REJECTED') => {
     setActionError('')
 
     let rejectionReason: string | null = null
     if (newStatus === 'REJECTED') {
       rejectionReason = window.prompt('Reason for rejecting this listing (shown to the breeder):')
-      if (rejectionReason === null) return // cancelled
+      if (rejectionReason === null) return
     }
 
     const { error } = await supabase
@@ -101,6 +102,14 @@ export default function AdminListingsPage() {
       return
     }
 
+    await logAudit(
+      newStatus === 'ACTIVE' ? 'Approved listing' : 'Rejected listing',
+      'listing',
+      listingId,
+      listingTitle || 'Untitled listing',
+      rejectionReason ?? undefined
+    )
+
     setListings((prev) => prev.filter((l) => l.id !== listingId))
 
     if (newStatus === 'ACTIVE') {
@@ -112,7 +121,7 @@ export default function AdminListingsPage() {
     }
   }
 
-  const handleDelete = async (listingId: string) => {
+  const handleDelete = async (listingId: string, listingTitle: string) => {
     if (!confirm('Delete this listing permanently? This cannot be undone.')) return
 
     setDeletingId(listingId)
@@ -125,6 +134,8 @@ export default function AdminListingsPage() {
       setDeletingId(null)
       return
     }
+
+    await logAudit('Deleted listing', 'listing', listingId, listingTitle || 'Untitled listing')
 
     setListings((prev) => prev.filter((l) => l.id !== listingId))
     setDeletingId(null)
@@ -236,13 +247,13 @@ export default function AdminListingsPage() {
                     {listing.status === 'PENDING' && (
                       <>
                         <button
-                          onClick={() => handleDecision(listing.id, 'ACTIVE')}
+                          onClick={() => handleDecision(listing.id, listing.title, 'ACTIVE')}
                           className="px-3 py-1 bg-black text-white text-sm rounded-md"
                         >
                           Approve
                         </button>
                         <button
-                          onClick={() => handleDecision(listing.id, 'REJECTED')}
+                          onClick={() => handleDecision(listing.id, listing.title, 'REJECTED')}
                           className="px-3 py-1 border border-red-600 text-red-600 text-sm rounded-md"
                         >
                           Reject
@@ -256,7 +267,7 @@ export default function AdminListingsPage() {
                       Edit
                     </Link>
                     <button
-                      onClick={() => handleDelete(listing.id)}
+                      onClick={() => handleDelete(listing.id, listing.title)}
                       disabled={deletingId === listing.id}
                       className="px-3 py-1 border border-red-600 text-red-600 text-sm rounded-md disabled:opacity-50"
                     >
