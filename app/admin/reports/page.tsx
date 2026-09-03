@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
+import { logAudit } from '@/lib/audit'
 import Header from '@/components/Header'
 
 type Report = {
@@ -61,8 +62,14 @@ export default function AdminReportsPage() {
     if (hasAccess) load()
   }, [hasAccess])
 
-  const updateStatus = async (id: string, status: string) => {
+  const updateStatus = async (id: string, listingTitle: string, status: string) => {
     await supabase.from('reports').update({ status }).eq('id', id)
+    await logAudit(
+      status === 'RESOLVED' ? 'Marked report resolved' : 'Dismissed report',
+      'report',
+      id,
+      listingTitle || 'Report'
+    )
     setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
   }
 
@@ -138,13 +145,13 @@ export default function AdminReportsPage() {
               {report.status === 'PENDING' && (
                 <div className="flex gap-2 mt-3">
                   <button
-                    onClick={() => updateStatus(report.id, 'RESOLVED')}
+                    onClick={() => updateStatus(report.id, report.listing?.title ?? '', 'RESOLVED')}
                     className="text-xs font-bold border px-3 py-1.5 hover:bg-green-50"
                   >
                     Mark resolved
                   </button>
                   <button
-                    onClick={() => updateStatus(report.id, 'DISMISSED')}
+                    onClick={() => updateStatus(report.id, report.listing?.title ?? '', 'DISMISSED')}
                     className="text-xs font-bold border px-3 py-1.5 hover:bg-gray-50"
                   >
                     Dismiss
