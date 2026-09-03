@@ -57,7 +57,9 @@ export default function AuditLogPage() {
     return (
       <>
         <Header />
-        <div className="max-w-4xl mx-auto p-6 text-gray-500">Loading...</div>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-4xl mx-auto p-6 text-pd-gray">Loading...</div>
+        </div>
       </>
     )
   }
@@ -66,8 +68,10 @@ export default function AuditLogPage() {
     return (
       <>
         <Header />
-        <div className="max-w-4xl mx-auto p-6">
-          <p className="text-red-600">You do not have access to this page.</p>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-4xl mx-auto p-6">
+            <p className="text-red-600">You do not have access to this page.</p>
+          </div>
         </div>
       </>
     )
@@ -76,26 +80,30 @@ export default function AuditLogPage() {
   return (
     <>
       <Header />
-      <div className="max-w-4xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-2">Audit Log</h1>
-        <p className="text-sm text-gray-500 mb-6">Last 200 admin/moderator actions.</p>
+      <div className="bg-pd-cream min-h-screen">
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="bg-pd-black text-white rounded-md p-4 mb-2">
+            <h1 className="text-xl font-bold">Audit Log</h1>
+          </div>
+          <p className="text-sm text-pd-gray mb-6">Last 200 admin/moderator actions.</p>
 
-        {loading && <p className="text-gray-500">Loading...</p>}
+          {loading && <p className="text-pd-gray">Loading...</p>}
 
-        {!loading && entries.length === 0 && <p className="text-gray-500">No actions logged yet.</p>}
+          {!loading && entries.length === 0 && <p className="text-pd-gray">No actions logged yet.</p>}
 
-        <div className="space-y-2">
-          {entries.map((entry) => (
-            <div key={entry.id} className="border rounded-md p-3 text-sm">
-              <p>
-                <span className="font-semibold">{entry.actor_name ?? 'Unknown'}</span>{' '}
-                <span className="text-gray-600">{entry.action}</span>{' '}
-                <span className="font-medium">{entry.target_label ?? entry.target_type}</span>
-              </p>
-              {entry.details && <p className="text-gray-500 text-xs mt-1">{entry.details}</p>}
-              <p className="text-xs text-gray-400 mt-1">{new Date(entry.created_at).toLocaleString()}</p>
-            </div>
-          ))}
+          <div className="space-y-2">
+            {entries.map((entry) => (
+              <div key={entry.id} className="bg-white border border-pd-black/10 rounded-md p-3 text-sm">
+                <p className="text-pd-black">
+                  <span className="font-semibold">{entry.actor_name ?? 'Unknown'}</span>{' '}
+                  <span className="text-pd-gray">{entry.action}</span>{' '}
+                  <span className="font-medium">{entry.target_label ?? entry.target_type}</span>
+                </p>
+                {entry.details && <p className="text-pd-gray text-xs mt-1">{entry.details}</p>}
+                <p className="text-xs text-pd-gray mt-1">{new Date(entry.created_at).toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </>
