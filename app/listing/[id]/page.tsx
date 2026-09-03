@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Flag, BadgeCheck } from 'lucide-react'
+import { Flag, BadgeCheck, Eye } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
 
@@ -38,6 +38,7 @@ type ListingDetail = {
   microchipped: boolean | null
   vaccinated: boolean | null
   created_at: string
+  view_count: number | null
   size: { label: string } | null
   colour: { label: string } | null
   country: { name: string } | null
@@ -67,6 +68,8 @@ export default function ListingDetailPage() {
   const [loading, setLoading] = useState(true)
   const [activePhoto, setActivePhoto] = useState(0)
   const [canEdit, setCanEdit] = useState(false)
+  const [canDelete, setCanDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
 
   const [message, setMessage] = useState('')
@@ -109,7 +112,7 @@ export default function ListingDetailPage() {
         .select(
           `id, breeder_id, title, description, price, currency_code, country_code, city, sell_scope,
            sex, date_of_birth, ready_from, has_pedigree, kennel_registration_name, registration_number,
-           microchipped, vaccinated, created_at, sire_id, dam_id,
+           microchipped, vaccinated, created_at, view_count, sire_id, dam_id,
            size:poodle_sizes(label),
            colour:poodle_colours(label),
            country:countries(name),
@@ -139,12 +142,30 @@ export default function ListingDetailPage() {
         if (data) {
           const isOwner = (data as unknown as ListingDetail).breeder_id === user.id
           const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-          setCanEdit(isOwner || profile?.role === 'admin')
+          const isAdmin = profile?.role === 'admin'
+          setCanEdit(isOwner || isAdmin)
+          setCanDelete(isOwner || isAdmin)
         }
       }
     }
     load()
   }, [listingId])
+
+  const handleDelete = async () => {
+    if (!listing) return
+    if (!confirm('Delete this listing permanently? This cannot be undone.')) return
+
+    setDeleting(true)
+    const { error } = await supabase.from('listings').delete().eq('id', listing.id)
+
+    if (error) {
+      alert(error.message)
+      setDeleting(false)
+      return
+    }
+
+    router.push('/search')
+  }
 
   const handleSendMessage = async () => {
     if (!listing) return
@@ -229,7 +250,7 @@ export default function ListingDetailPage() {
     })
 
     if (error) {
-      setReportError('Something went wrong submitting your report. Please try again.')
+      setReportError(`Something went wrong: ${error.message}`)
       setReportSending(false)
       return
     }
@@ -262,15 +283,16 @@ export default function ListingDetailPage() {
 
   const renderParentSection = (title: string, dog: ParentDog | null) => {
     if (!dog) return null
+    const validResults = dog.health_results.filter((r) => r.result_value && r.result_value.trim() !== '')
     return (
       <div className="border rounded-md p-3 mb-3">
         <p className="font-semibold text-sm mb-1">{title}</p>
         <p className="text-xs text-gray-500 mb-2">
           {dog.colour?.label ?? '—'} · {dog.size?.label ?? '—'}
         </p>
-        {dog.health_results.length > 0 ? (
+        {validResults.length > 0 ? (
           <ul className="text-xs text-gray-700 space-y-0.5">
-            {dog.health_results.map((r, i) => (
+            {validResults.map((r, i) => (
               <li key={i}>
                 {r.test_type?.label ?? 'Test'}: <span className="font-medium">{r.result_value}</span>
               </li>
@@ -320,19 +342,35 @@ export default function ListingDetailPage() {
 
           <div className="flex items-start justify-between gap-3">
             <h1 className="text-2xl font-bold mb-1">{listing.title || 'Untitled listing'}</h1>
-            {canEdit && (
-              <a
-                href={`/listing/${listing.id}/edit`}
-                className="flex-shrink-0 text-xs font-bold text-blue-600 border border-blue-600 px-3 py-1.5 rounded-md hover:bg-blue-50"
-              >
-                Edit
-              </a>
-            )}
+            <div className="flex gap-2 flex-shrink-0">
+              {canEdit && (
+                <a
+                  href={`/listing/${listing.id}/edit`}
+                  className="text-xs font-bold text-blue-600 border border-blue-600 px-3 py-1.5 rounded-md hover:bg-blue-50"
+                >
+                  Edit
+                </a>
+              )}
+              {canDelete && (
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="text-xs font-bold text-red-600 border border-red-600 px-3 py-1.5 rounded-md hover:bg-red-50 disabled:opacity-50"
+                >
+                  {deleting ? 'Deleting...' : 'Delete'}
+                </button>
+              )}
+            </div>
           </div>
-          <a href={`/breeder/${listing.breeder_id}`} className="text-gray-500 mb-4 hover:underline inline-flex items-center gap-1">
-            {listing.breeder?.kennel_name ?? 'Unknown kennel'}
-            {isVerified && <BadgeCheck size={16} className="text-green-600" />}
-          </a>
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <a href={`/breeder/${listing.breeder_id}`} className="text-gray-500 hover:underline inline-flex items-center gap-1">
+              {listing.breeder?.kennel_name ?? 'Unknown kennel'}
+              {isVerified && <BadgeCheck size={16} className="text-green-600" />}
+            </a>
+            <span className="flex items-center gap-1 text-xs text-gray-400">
+              <Eye size={12} /> {listing.view_count ?? 0} views
+            </span>
+          </div>
 
           <p className="text-2xl font-bold text-pd-black mb-6">
             {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
