@@ -159,7 +159,9 @@ export default function AdminListingsPage() {
     return (
       <>
         <Header />
-        <div className="max-w-3xl mx-auto p-6 text-gray-500">Loading...</div>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-3xl mx-auto p-6 text-pd-gray">Loading...</div>
+        </div>
       </>
     )
   }
@@ -168,8 +170,10 @@ export default function AdminListingsPage() {
     return (
       <>
         <Header />
-        <div className="max-w-3xl mx-auto p-6">
-          <p className="text-red-600">You do not have access to this page.</p>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-3xl mx-auto p-6">
+            <p className="text-red-600">You do not have access to this page.</p>
+          </div>
         </div>
       </>
     )
@@ -192,139 +196,141 @@ export default function AdminListingsPage() {
   return (
     <>
       <Header />
-      <div className="max-w-3xl mx-auto p-6">
-        {toast && (
-          <div className="bg-green-50 border border-green-200 text-green-800 rounded-md px-4 py-3 mb-4 text-sm">
-            {toast}
+      <div className="bg-pd-cream min-h-screen">
+        <div className="max-w-3xl mx-auto p-6">
+          {toast && (
+            <div className="bg-pd-gold/10 border border-pd-gold text-pd-black rounded-md px-4 py-3 mb-4 text-sm font-medium">
+              {toast}
+            </div>
+          )}
+
+          <div className="bg-pd-black text-white rounded-md p-4 mb-4 flex items-center justify-between flex-wrap gap-3">
+            <h1 className="text-xl font-bold">
+              {filter === 'PENDING' ? `Pending Listings (${sortedListings.length})` : `All Listings (${sortedListings.length})`}
+            </h1>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="border border-white/20 bg-pd-black text-white rounded-md px-3 py-2 text-sm"
+            >
+              <option value="newest">Sort: Newest</option>
+              <option value="oldest">Sort: Oldest</option>
+              <option value="age">Sort: Age (puppy first)</option>
+            </select>
           </div>
-        )}
 
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-          <h1 className="text-2xl font-bold">
-            {filter === 'PENDING' ? `Pending Listings (${sortedListings.length})` : `All Listings (${sortedListings.length})`}
-          </h1>
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => setFilter('PENDING')}
+              className={`text-xs font-bold px-3 py-1.5 rounded ${
+                filter === 'PENDING' ? 'bg-pd-black text-pd-gold' : 'border border-pd-black/15 bg-white text-pd-black'
+              }`}
+            >
+              Pending
+            </button>
+            <button
+              onClick={() => setFilter('ALL')}
+              className={`text-xs font-bold px-3 py-1.5 rounded ${
+                filter === 'ALL' ? 'bg-pd-black text-pd-gold' : 'border border-pd-black/15 bg-white text-pd-black'
+              }`}
+            >
+              All listings
+            </button>
+          </div>
 
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="border rounded-md px-3 py-2 text-sm"
-          >
-            <option value="newest">Sort: Newest</option>
-            <option value="oldest">Sort: Oldest</option>
-            <option value="age">Sort: Age (puppy first)</option>
-          </select>
-        </div>
+          {actionError && <p className="text-red-600 text-sm mb-4">{actionError}</p>}
 
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setFilter('PENDING')}
-            className={`text-xs font-bold px-3 py-1.5 rounded ${
-              filter === 'PENDING' ? 'bg-black text-white' : 'border'
-            }`}
-          >
-            Pending
-          </button>
-          <button
-            onClick={() => setFilter('ALL')}
-            className={`text-xs font-bold px-3 py-1.5 rounded ${
-              filter === 'ALL' ? 'bg-black text-white' : 'border'
-            }`}
-          >
-            All listings
-          </button>
-        </div>
+          {sortedListings.length === 0 && (
+            <p className="text-pd-gray">No listings to show.</p>
+          )}
 
-        {actionError && <p className="text-red-600 text-sm mb-4">{actionError}</p>}
-
-        {sortedListings.length === 0 && (
-          <p className="text-gray-500">No listings to show.</p>
-        )}
-
-        <div className="space-y-4">
-          {pageListings.map((listing) => {
-            const photo = listing.photos?.sort((a, b) => a.sort_order - b.sort_order)[0]
-            return (
-              <div key={listing.id} className="border rounded-md p-4 flex gap-4">
-                <div className="w-24 h-24 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
-                  {photo ? (
-                    <img src={photo.url} alt={listing.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                      No photo
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="font-semibold">{listing.title || 'Untitled listing'}</h2>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700">
-                      {listing.status}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    {listing.breeder?.kennel_name ?? 'Unknown kennel'} · {listing.country?.name ?? '—'}
-                  </p>
-                  <p className="text-sm font-bold mt-1">
-                    {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
-                  </p>
-                  <div className="flex gap-2 mt-3 flex-wrap">
-                    {listing.status === 'PENDING' && (
-                      <>
-                        <button
-                          onClick={() => handleDecision(listing.id, listing.title, 'ACTIVE')}
-                          className="px-3 py-1 bg-black text-white text-sm rounded-md"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleDecision(listing.id, listing.title, 'REJECTED')}
-                          className="px-3 py-1 border border-red-600 text-red-600 text-sm rounded-md"
-                        >
-                          Reject
-                        </button>
-                      </>
+          <div className="space-y-4">
+            {pageListings.map((listing) => {
+              const photo = listing.photos?.sort((a, b) => a.sort_order - b.sort_order)[0]
+              return (
+                <div key={listing.id} className="bg-white border border-pd-black/10 rounded-md p-4 flex gap-4">
+                  <div className="w-24 h-24 flex-shrink-0 bg-pd-cream rounded-md overflow-hidden">
+                    {photo ? (
+                      <img src={photo.url} alt={listing.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-pd-gray text-xs">
+                        No photo
+                      </div>
                     )}
-                    <Link
-                      href={`/admin/listings/${listing.id}/edit`}
-                      className="px-3 py-1 border border-blue-600 text-blue-600 text-sm rounded-md"
-                    >
-                      Edit
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(listing.id, listing.title)}
-                      disabled={deletingId === listing.id}
-                      className="px-3 py-1 border border-red-600 text-red-600 text-sm rounded-md disabled:opacity-50"
-                    >
-                      {deletingId === listing.id ? 'Deleting...' : 'Delete'}
-                    </button>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="font-semibold text-pd-black">{listing.title || 'Untitled listing'}</h2>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-pd-cream text-pd-black">
+                        {listing.status}
+                      </span>
+                    </div>
+                    <p className="text-sm text-pd-gray">
+                      {listing.breeder?.kennel_name ?? 'Unknown kennel'} · {listing.country?.name ?? '—'}
+                    </p>
+                    <p className="text-sm font-bold text-pd-gold mt-1">
+                      {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
+                    </p>
+                    <div className="flex gap-2 mt-3 flex-wrap">
+                      {listing.status === 'PENDING' && (
+                        <>
+                          <button
+                            onClick={() => handleDecision(listing.id, listing.title, 'ACTIVE')}
+                            className="px-3 py-1 bg-pd-black text-pd-gold text-sm rounded-md"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleDecision(listing.id, listing.title, 'REJECTED')}
+                            className="px-3 py-1 border border-red-600 text-red-600 text-sm rounded-md bg-white"
+                          >
+                            Reject
+                          </button>
+                        </>
+                      )}
+                      <Link
+                        href={`/admin/listings/${listing.id}/edit`}
+                        className="px-3 py-1 border border-blue-600 text-blue-600 text-sm rounded-md bg-white"
+                      >
+                        Edit
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(listing.id, listing.title)}
+                        disabled={deletingId === listing.id}
+                        className="px-3 py-1 border border-red-600 text-red-600 text-sm rounded-md bg-white disabled:opacity-50"
+                      >
+                        {deletingId === listing.id ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-4 mt-8">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="px-4 py-2 border rounded-md text-sm disabled:opacity-30"
-            >
-              Previous
-            </button>
-            <span className="text-sm text-gray-600">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="px-4 py-2 border rounded-md text-sm disabled:opacity-30"
-            >
-              Next
-            </button>
+              )
+            })}
           </div>
-        )}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 mt-8">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 border border-pd-black/15 rounded-md text-sm disabled:opacity-30 bg-white"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-pd-gray">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 border border-pd-black/15 rounded-md text-sm disabled:opacity-30 bg-white"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </>
   )
