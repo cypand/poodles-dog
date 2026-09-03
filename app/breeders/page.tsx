@@ -86,7 +86,9 @@ export default function BreedersPage() {
     return (
       <>
         <Header />
-        <div className="max-w-4xl mx-auto p-6 text-gray-500">Loading...</div>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-4xl mx-auto p-6 text-pd-gray">Loading...</div>
+        </div>
       </>
     )
   }
@@ -95,8 +97,10 @@ export default function BreedersPage() {
     return (
       <>
         <Header />
-        <div className="max-w-4xl mx-auto p-6">
-          <p className="text-red-600">You do not have access to this page.</p>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-4xl mx-auto p-6">
+            <p className="text-red-600">You do not have access to this page.</p>
+          </div>
         </div>
       </>
     )
@@ -105,29 +109,31 @@ export default function BreedersPage() {
   return (
     <>
       <Header />
-      <div className="max-w-4xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-6">Breeders</h1>
+      <div className="bg-pd-cream min-h-screen">
+        <div className="max-w-4xl mx-auto p-6">
+          <h1 className="text-2xl font-bold mb-6 text-pd-black">Breeders</h1>
 
-        {loading && <p className="text-gray-500">Loading...</p>}
+          {loading && <p className="text-pd-gray">Loading...</p>}
 
-        {!loading && breeders.length === 0 && (
-          <p className="text-gray-500">No breeders yet.</p>
-        )}
+          {!loading && breeders.length === 0 && (
+            <p className="text-pd-gray">No breeders yet.</p>
+          )}
 
-        <div className="grid sm:grid-cols-2 gap-4">
-          {breeders.map((b) => (
-            <Link
-              key={b.id}
-              href={`/breeder/${b.id}`}
-              className="border rounded-md p-4 hover:bg-gray-50"
-            >
-              <p className="font-semibold">{b.kennel_name || 'Unnamed kennel'}</p>
-              {b.about && <p className="text-sm text-gray-500 mt-1 line-clamp-2">{b.about}</p>}
-              <p className="text-xs text-gray-400 mt-2">
-                {b.listing_count} active {b.listing_count === 1 ? 'listing' : 'listings'}
-              </p>
-            </Link>
-          ))}
+          <div className="grid sm:grid-cols-2 gap-4">
+            {breeders.map((b) => (
+              <Link
+                key={b.id}
+                href={`/breeder/${b.id}`}
+                className="bg-white border border-pd-black/10 rounded-md p-4 hover:shadow-md transition-shadow"
+              >
+                <p className="font-semibold text-pd-black">{b.kennel_name || 'Unnamed kennel'}</p>
+                {b.about && <p className="text-sm text-pd-gray mt-1 line-clamp-2">{b.about}</p>}
+                <p className="text-xs text-pd-gray mt-2">
+                  {b.listing_count} active {b.listing_count === 1 ? 'listing' : 'listings'}
+                </p>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </>
