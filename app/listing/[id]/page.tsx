@@ -6,6 +6,19 @@ import { Flag, BadgeCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
 
+type HealthResult = {
+  test_type: { label: string } | null
+  result_value: string
+}
+
+type ParentDog = {
+  id: string
+  registered_name: string | null
+  colour: { label: string } | null
+  size: { label: string } | null
+  health_results: HealthResult[]
+}
+
 type ListingDetail = {
   id: string
   breeder_id: string
@@ -31,6 +44,8 @@ type ListingDetail = {
   registry: { name: string } | null
   breeder: { kennel_name: string; verification_status: string } | null
   photos: { url: string; sort_order: number }[]
+  sire_id: string | null
+  dam_id: string | null
 }
 
 const REPORT_REASONS = [
@@ -47,6 +62,8 @@ export default function ListingDetailPage() {
   const listingId = params?.id as string
 
   const [listing, setListing] = useState<ListingDetail | null>(null)
+  const [sire, setSire] = useState<ParentDog | null>(null)
+  const [dam, setDam] = useState<ParentDog | null>(null)
   const [loading, setLoading] = useState(true)
   const [activePhoto, setActivePhoto] = useState(0)
   const [canEdit, setCanEdit] = useState(false)
@@ -66,6 +83,23 @@ export default function ListingDetailPage() {
   const [reportError, setReportError] = useState('')
 
   useEffect(() => {
+    const loadParentDog = async (dogId: string): Promise<ParentDog | null> => {
+      const { data: dog } = await supabase
+        .from('dogs')
+        .select('id, registered_name, colour:poodle_colours(label), size:poodle_sizes(label)')
+        .eq('id', dogId)
+        .single()
+
+      if (!dog) return null
+
+      const { data: results } = await supabase
+        .from('dog_health_results')
+        .select('result_value, test_type:health_test_types(label)')
+        .eq('dog_id', dogId)
+
+      return { ...(dog as unknown as ParentDog), health_results: (results as unknown as HealthResult[]) ?? [] }
+    }
+
     const load = async () => {
       if (!listingId) return
       setLoading(true)
@@ -75,7 +109,7 @@ export default function ListingDetailPage() {
         .select(
           `id, breeder_id, title, description, price, currency_code, country_code, city, sell_scope,
            sex, date_of_birth, ready_from, has_pedigree, kennel_registration_name, registration_number,
-           microchipped, vaccinated, created_at,
+           microchipped, vaccinated, created_at, sire_id, dam_id,
            size:poodle_sizes(label),
            colour:poodle_colours(label),
            country:countries(name),
@@ -86,8 +120,16 @@ export default function ListingDetailPage() {
         .eq('id', listingId)
         .single()
 
-      setListing((data as unknown as ListingDetail) ?? null)
+      const listingData = data as unknown as ListingDetail
+      setListing(listingData ?? null)
       setLoading(false)
+
+      if (listingData?.sire_id) {
+        setSire(await loadParentDog(listingData.sire_id))
+      }
+      if (listingData?.dam_id) {
+        setDam(await loadParentDog(listingData.dam_id))
+      }
 
       supabase.rpc('increment_listing_view', { listing_id_input: listingId }).then(() => {})
 
@@ -200,7 +242,7 @@ export default function ListingDetailPage() {
     return (
       <>
         <Header />
-        <div className="max-w-5xl mx-auto p-6 text-gray-500">Loading...</div>
+        <div className="max-w-5xl mx-auto p-6 text-gray-500">Sniffing out the details...</div>
       </>
     )
   }
@@ -217,6 +259,29 @@ export default function ListingDetailPage() {
   const sortedPhotos = [...(listing.photos ?? [])].sort((a, b) => a.sort_order - b.sort_order)
   const isOwnListing = userId === listing.breeder_id
   const isVerified = listing.breeder?.verification_status === 'verified'
+
+  const renderParentSection = (title: string, dog: ParentDog | null) => {
+    if (!dog) return null
+    return (
+      <div className="border rounded-md p-3 mb-3">
+        <p className="font-semibold text-sm mb-1">{title}</p>
+        <p className="text-xs text-gray-500 mb-2">
+          {dog.colour?.label ?? '—'} · {dog.size?.label ?? '—'}
+        </p>
+        {dog.health_results.length > 0 ? (
+          <ul className="text-xs text-gray-700 space-y-0.5">
+            {dog.health_results.map((r, i) => (
+              <li key={i}>
+                {r.test_type?.label ?? 'Test'}: <span className="font-medium">{r.result_value}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-gray-400">No health test results recorded.</p>
+        )}
+      </div>
+    )
+  }
 
   return (
     <>
@@ -323,6 +388,14 @@ export default function ListingDetailPage() {
             <div className="mb-6">
               <h2 className="font-semibold mb-1">Description</h2>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{listing.description}</p>
+            </div>
+          )}
+
+          {(sire || dam) && (
+            <div className="mb-6">
+              <h2 className="font-semibold mb-2">Parent Health Tests</h2>
+              {renderParentSection('Sire (father)', sire)}
+              {renderParentSection('Dam (mother)', dam)}
             </div>
           )}
         </div>
