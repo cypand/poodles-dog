@@ -40,6 +40,8 @@ export default function BreederProfilePage() {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const [sent, setSent] = useState(false)
+  const [isBanned, setIsBanned] = useState(false)
+  const [banProcessing, setBanProcessing] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -65,10 +67,44 @@ export default function BreederProfilePage() {
         .order('created_at', { ascending: false })
 
       setListings((listingsData as unknown as Listing[]) ?? [])
+
+      if (user) {
+        const { data: blocked } = await supabase
+          .from('blocked_users')
+          .select('id')
+          .eq('blocker_id', user.id)
+          .eq('blocked_id', breederId)
+          .maybeSingle()
+        setIsBanned(!!blocked)
+      }
+
       setLoading(false)
     }
     load()
   }, [breederId])
+
+  const handleToggleBan = async () => {
+    if (!userId) {
+      router.push('/login')
+      return
+    }
+
+    setBanProcessing(true)
+
+    if (isBanned) {
+      await supabase.from('blocked_users').delete().eq('blocker_id', userId).eq('blocked_id', breederId)
+      setIsBanned(false)
+    } else {
+      if (!confirm(`Ban ${breeder?.kennel_name ?? 'this breeder'}? They will no longer be able to message you.`)) {
+        setBanProcessing(false)
+        return
+      }
+      await supabase.from('blocked_users').insert({ blocker_id: userId, blocked_id: breederId })
+      setIsBanned(true)
+    }
+
+    setBanProcessing(false)
+  }
 
   const handleSendMessage = async () => {
     if (!userId) {
@@ -196,7 +232,7 @@ export default function BreederProfilePage() {
           </div>
 
           {!isSelf && (
-            <div className="border border-pd-black/10 rounded-md p-4 mb-8 bg-white">
+            <div className="border border-pd-black/10 rounded-md p-4 mb-4 bg-white">
               <h2 className="font-bold mb-2 text-pd-black">Message this breeder</h2>
               {sent ? (
                 <p className="text-green-700 text-sm">Message sent! Redirecting...</p>
@@ -218,6 +254,25 @@ export default function BreederProfilePage() {
                     {sending ? 'Sending...' : 'Send message'}
                   </button>
                 </>
+              )}
+            </div>
+          )}
+
+          {!isSelf && (
+            <div className="mb-8">
+              <button
+                onClick={handleToggleBan}
+                disabled={banProcessing}
+                className={`text-sm font-bold px-4 py-2 rounded-md border disabled:opacity-50 ${
+                  isBanned
+                    ? 'border-green-600 text-green-700 hover:bg-green-50 bg-white'
+                    : 'border-red-600 text-red-600 hover:bg-red-50 bg-white'
+                }`}
+              >
+                {banProcessing ? 'Updating...' : isBanned ? 'Unban user' : 'Ban user'}
+              </button>
+              {isBanned && (
+                <p className="text-xs text-pd-gray mt-2">This breeder cannot message you.</p>
               )}
             </div>
           )}
