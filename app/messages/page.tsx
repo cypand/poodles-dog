@@ -23,7 +23,9 @@ type DisplayConversation = ConversationRow & {
 export default function MessagesPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
   const [conversations, setConversations] = useState<DisplayConversation[]>([])
+  const [busyId, setBusyId] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -32,6 +34,7 @@ export default function MessagesPage() {
         router.push('/login')
         return
       }
+      setUserId(user.id)
 
       const { data } = await supabase
         .from('conversations')
@@ -44,7 +47,7 @@ export default function MessagesPage() {
       const enriched = await Promise.all(
         convos.map(async (c) => {
           const isBuyer = c.buyer_id === user.id
-          let otherName = 'Unknown'
+          let otherName = 'Unnamed user'
 
           if (isBuyer) {
             const { data: breederProfile } = await supabase
@@ -52,14 +55,23 @@ export default function MessagesPage() {
               .select('kennel_name')
               .eq('id', c.breeder_id)
               .single()
-            otherName = breederProfile?.kennel_name || 'Breeder'
+            if (breederProfile?.kennel_name) {
+              otherName = breederProfile.kennel_name
+            } else {
+              const { data: breederAccount } = await supabase
+                .from('profiles')
+                .select('display_name')
+                .eq('id', c.breeder_id)
+                .single()
+              otherName = breederAccount?.display_name || 'Unnamed user'
+            }
           } else {
             const { data: buyerProfile } = await supabase
               .from('profiles')
               .select('display_name')
               .eq('id', c.buyer_id)
               .single()
-            otherName = buyerProfile?.display_name || 'Buyer'
+            otherName = buyerProfile?.display_name || 'Unnamed user'
           }
 
           let listingTitle: string | null = null
@@ -89,6 +101,38 @@ export default function MessagesPage() {
     load()
   }, [router])
 
+  const handleMarkUnread = async (conversationId: string) => {
+    if (!userId) return
+    setBusyId(conversationId)
+
+    await supabase
+      .from('messages')
+      .update({ read: false })
+      .eq('conversation_id', conversationId)
+      .neq('sender_id', userId)
+
+    setConversations((prev) =>
+      prev.map((c) => (c.id === conversationId ? { ...c, unread_count: Math.max(c.unread_count, 1) } : c))
+    )
+    setBusyId(null)
+  }
+
+  const handleDelete = async (conversationId: string) => {
+    if (!confirm('Delete this conversation? This cannot be undone.')) return
+    setBusyId(conversationId)
+
+    const { error } = await supabase.from('conversations').delete().eq('id', conversationId)
+
+    if (error) {
+      alert(error.message)
+      setBusyId(null)
+      return
+    }
+
+    setConversations((prev) => prev.filter((c) => c.id !== conversationId))
+    setBusyId(null)
+  }
+
   if (loading) {
     return (
       <>
@@ -110,30 +154,44 @@ export default function MessagesPage() {
 
         <div className="space-y-2">
           {conversations.map((c) => (
-            <Link
-              key={c.id}
-              href={`/messages/${c.id}`}
-              className="block border rounded-md p-4 hover:bg-gray-50"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold">{c.otherName}</p>
-                  {c.listingTitle && (
-                    <p className="text-sm text-gray-500">Re: {c.listingTitle}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {c.unread_count > 0 && (
-                    <span className="bg-pd-gold text-pd-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                      {c.unread_count}
+            <div key={c.id} className="border rounded-md p-4">
+              <Link href={`/messages/${c.id}`} className="block hover:opacity-80">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold">{c.otherName}</p>
+                    {c.listingTitle && (
+                      <p className="text-sm text-gray-500">Re: {c.listingTitle}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {c.unread_count > 0 && (
+                      <span className="bg-pd-gold text-pd-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                        {c.unread_count}
+                      </span>
+                    )}
+                    <span className="text-xs text-gray-400">
+                      {new Date(c.last_message_at).toLocaleDateString()}
                     </span>
-                  )}
-                  <span className="text-xs text-gray-400">
-                    {new Date(c.last_message_at).toLocaleDateString()}
-                  </span>
+                  </div>
                 </div>
+              </Link>
+              <div className="flex gap-3 mt-3">
+                <button
+                  onClick={() => handleMarkUnread(c.id)}
+                  disabled={busyId === c.id}
+                  className="text-xs font-bold text-gray-600 hover:text-black disabled:opacity-50"
+                >
+                  Mark as unread
+                </button>
+                <button
+                  onClick={() => handleDelete(c.id)}
+                  disabled={busyId === c.id}
+                  className="text-xs font-bold text-red-600 hover:text-red-800 disabled:opacity-50"
+                >
+                  {busyId === c.id ? 'Deleting...' : 'Delete'}
+                </button>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       </div>
