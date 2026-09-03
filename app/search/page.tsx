@@ -31,7 +31,7 @@ type Registry = { id: number; code: string; name: string }
 
 type SortOption = 'newest' | 'price_asc' | 'price_desc'
 
-const PAGE_SIZE = 12
+const PAGE_SIZE = 20
 
 function SearchResults() {
   const searchParams = useSearchParams()
@@ -50,7 +50,7 @@ function SearchResults() {
   const registryFilter = searchParams.get('registry')?.split(',').filter(Boolean) ?? []
   const priceMinFilter = searchParams.get('price_min')
   const priceMaxFilter = searchParams.get('price_max')
-  const pedigreeFilter = searchParams.get('pedigree') // 'yes' | 'no' | null
+  const pedigreeFilter = searchParams.get('pedigree')
 
   useEffect(() => {
     const load = async () => {
