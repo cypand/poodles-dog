@@ -105,7 +105,9 @@ export default function VerificationsPage() {
     return (
       <>
         <Header />
-        <div className="max-w-3xl mx-auto p-6 text-gray-500">Loading...</div>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-3xl mx-auto p-6 text-pd-gray">Loading...</div>
+        </div>
       </>
     )
   }
@@ -114,8 +116,10 @@ export default function VerificationsPage() {
     return (
       <>
         <Header />
-        <div className="max-w-3xl mx-auto p-6">
-          <p className="text-red-600">You do not have access to this page.</p>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-3xl mx-auto p-6">
+            <p className="text-red-600">You do not have access to this page.</p>
+          </div>
         </div>
       </>
     )
@@ -124,67 +128,71 @@ export default function VerificationsPage() {
   return (
     <>
       <Header />
-      <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-2">Breeder Verifications</h1>
-        <p className="text-sm text-gray-500 mb-6">Certificates are private — visible only here, to staff.</p>
+      <div className="bg-pd-cream min-h-screen">
+        <div className="max-w-3xl mx-auto p-6">
+          <div className="bg-pd-black text-white rounded-md p-4 mb-2">
+            <h1 className="text-xl font-bold">Breeder Verifications</h1>
+          </div>
+          <p className="text-sm text-pd-gray mb-6">Certificates are private — visible only here, to staff.</p>
 
-        {loading && <p className="text-gray-500">Loading...</p>}
-        {!loading && breeders.length === 0 && <p className="text-gray-500">No pending verifications.</p>}
+          {loading && <p className="text-pd-gray">Loading...</p>}
+          {!loading && breeders.length === 0 && <p className="text-pd-gray">No pending verifications.</p>}
 
-        <div className="space-y-4">
-          {breeders.map((b) => (
-            <div key={b.id} className="border rounded-md p-4">
-              <p className="font-semibold">{b.kennel_name || 'Unnamed kennel'}</p>
-              {b.registry_number && (
-                <div className="flex items-center gap-2 mt-1">
-                  <p className="text-sm text-gray-600">Registry #: {b.registry_number}</p>
+          <div className="space-y-4">
+            {breeders.map((b) => (
+              <div key={b.id} className="bg-white border border-pd-black/10 rounded-md p-4">
+                <p className="font-semibold text-pd-black">{b.kennel_name || 'Unnamed kennel'}</p>
+                {b.registry_number && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-sm text-pd-gray">Registry #: {b.registry_number}</p>
+                    <a
+                      href={`https://www.google.com/search?q=${encodeURIComponent(
+                        b.registry_number + (b.country_code ? ' ' + b.country_code : '') + ' kennel club registration'
+                      )}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-blue-600 underline"
+                    >
+                      Search on Google →
+                    </a>
+                  </div>
+                )}
+                {certUrls[b.id] ? (
                   <a
-                    href={`https://www.google.com/search?q=${encodeURIComponent(
-                      b.registry_number + (b.country_code ? ' ' + b.country_code : '') + ' kennel club registration'
-                    )}`}
+                    href={certUrls[b.id]}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs text-blue-600 underline"
+                    className="inline-block mt-2 text-sm text-blue-600 underline"
                   >
-                    Search on Google →
+                    View submitted certificate →
                   </a>
-                </div>
-              )}
-              {certUrls[b.id] ? (
-                <a
-                  href={certUrls[b.id]}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-block mt-2 text-sm text-blue-600 underline"
-                >
-                  View submitted certificate →
-                </a>
-              ) : (
-                <p className="text-sm text-gray-400 mt-2">No certificate uploaded.</p>
-              )}
-              <p className="text-xs text-gray-400 mt-2">
-                Submitted:{' '}
-                {b.verification_submitted_at ? new Date(b.verification_submitted_at).toLocaleString() : '—'}
-              </p>
+                ) : (
+                  <p className="text-sm text-pd-gray mt-2">No certificate uploaded.</p>
+                )}
+                <p className="text-xs text-pd-gray mt-2">
+                  Submitted:{' '}
+                  {b.verification_submitted_at ? new Date(b.verification_submitted_at).toLocaleString() : '—'}
+                </p>
 
-              <div className="flex gap-2 mt-3">
-                <button
-                  onClick={() => handleDecision(b.id, b.kennel_name, true)}
-                  disabled={processingId === b.id}
-                  className="px-3 py-1.5 bg-black text-white text-sm rounded-md disabled:opacity-50"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => handleDecision(b.id, b.kennel_name, false)}
-                  disabled={processingId === b.id}
-                  className="px-3 py-1.5 border border-red-600 text-red-600 text-sm rounded-md disabled:opacity-50"
-                >
-                  Reject
-                </button>
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => handleDecision(b.id, b.kennel_name, true)}
+                    disabled={processingId === b.id}
+                    className="px-3 py-1.5 bg-pd-black text-pd-gold text-sm rounded-md disabled:opacity-50"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleDecision(b.id, b.kennel_name, false)}
+                    disabled={processingId === b.id}
+                    className="px-3 py-1.5 border border-red-600 text-red-600 text-sm rounded-md disabled:opacity-50 bg-white"
+                  >
+                    Reject
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </>
