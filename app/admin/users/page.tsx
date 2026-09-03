@@ -15,6 +15,23 @@ const DURATION_OPTIONS = [
   { label: '1 Month', hours: 24 * 30 },
 ]
 
+const SUSPEND_REASONS = [
+  'Spam or unsolicited messaging',
+  'Suspicious or scam activity',
+  'Inappropriate content or behavior',
+  'Multiple user complaints/reports',
+  'Violation of platform rules',
+  'Other',
+]
+
+const BAN_REASONS = [
+  'Repeated policy violations',
+  'Fraudulent or scam activity',
+  'Animal welfare violation',
+  'Abusive behavior toward other users',
+  'Other',
+]
+
 const ROLE_RANK: Record<string, number> = {
   admin: 0,
   moderator: 1,
@@ -44,8 +61,10 @@ export default function AdminUsersPage() {
   const [actingId, setActingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<SortOption>('last_login')
-  const [suspendDurations, setSuspendDurations] = useState<Record<string, number>>({})
   const [search, setSearch] = useState('')
+  const [suspendDurations, setSuspendDurations] = useState<Record<string, number>>({})
+  const [suspendReasons, setSuspendReasons] = useState<Record<string, string>>({})
+  const [banReasons, setBanReasons] = useState<Record<string, string>>({})
 
   const hasAccess = isAdmin || isModerator
 
@@ -92,6 +111,16 @@ export default function AdminUsersPage() {
   }, [router])
 
   const toggleBan = async (userId: string, displayName: string | null, currentlyBanned: boolean) => {
+    let reason: string | undefined
+
+    if (!currentlyBanned) {
+      reason = banReasons[userId]
+      if (!reason) {
+        setError('Please select a reason before banning this user.')
+        return
+      }
+    }
+
     setActingId(userId)
     setError('')
 
@@ -106,7 +135,13 @@ export default function AdminUsersPage() {
       return
     }
 
-    await logAudit(currentlyBanned ? 'Unbanned' : 'Banned', 'user', userId, displayName ?? 'Unnamed user')
+    await logAudit(
+      currentlyBanned ? 'Unbanned' : 'Banned',
+      'user',
+      userId,
+      displayName ?? 'Unnamed user',
+      reason
+    )
 
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, banned: !currentlyBanned } : u))
@@ -140,6 +175,12 @@ export default function AdminUsersPage() {
   }
 
   const handleSuspend = async (userId: string, displayName: string | null) => {
+    const reason = suspendReasons[userId]
+    if (!reason) {
+      setError('Please select a reason before suspending this user.')
+      return
+    }
+
     setActingId(userId)
     setError('')
 
@@ -164,7 +205,13 @@ export default function AdminUsersPage() {
       return
     }
 
-    await logAudit('Suspended', 'user', userId, displayName ?? 'Unnamed user', `Duration: ${durationLabel}`)
+    await logAudit(
+      'Suspended',
+      'user',
+      userId,
+      displayName ?? 'Unnamed user',
+      `Duration: ${durationLabel} · Reason: ${reason}`
+    )
 
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, suspended_until: json.suspended_until } : u))
@@ -327,50 +374,37 @@ export default function AdminUsersPage() {
             const canChangeRole = isAdmin && !isProtected
 
             return (
-              <div key={u.id} className="border rounded-md p-4 flex items-center justify-between gap-4 flex-wrap">
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {u.role === 'admin' && <Crown size={16} className="text-pd-gold" />}
-                    {u.role === 'moderator' && <ShieldCheck size={16} className="text-blue-600" />}
-                    <span className="font-semibold">{u.display_name ?? 'Unnamed'}</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700 uppercase">
-                      {u.role}
-                    </span>
-                    {u.banned && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-700">
-                        BANNED
+              <div key={u.id} className="border rounded-md p-4">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {u.role === 'admin' && <Crown size={16} className="text-pd-gold" />}
+                      {u.role === 'moderator' && <ShieldCheck size={16} className="text-blue-600" />}
+                      <span className="font-semibold">{u.display_name ?? 'Unnamed'}</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700 uppercase">
+                        {u.role}
                       </span>
-                    )}
-                    {isCurrentlySuspended && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-100 text-orange-700">
-                        SUSPENDED until {new Date(u.suspended_until!).toLocaleString()}
-                      </span>
-                    )}
+                      {u.banned && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-700">
+                          BANNED
+                        </span>
+                      )}
+                      {isCurrentlySuspended && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-100 text-orange-700">
+                          SUSPENDED until {new Date(u.suspended_until!).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500">{u.email ?? '—'}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Last login:{' '}
+                      {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString() : 'Never'}
+                      {' · '}
+                      {u.listing_count} {u.listing_count === 1 ? 'listing' : 'listings'}
+                    </p>
                   </div>
-                  <p className="text-sm text-gray-500">{u.email ?? '—'}</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Last login:{' '}
-                    {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString() : 'Never'}
-                    {' · '}
-                    {u.listing_count} {u.listing_count === 1 ? 'listing' : 'listings'}
-                  </p>
-                </div>
 
-                <div className="flex flex-col gap-2 items-end">
                   <div className="flex gap-2 flex-wrap">
-                    {isAdmin && !isProtected && (
-                      <button
-                        onClick={() => toggleBan(u.id, u.display_name, u.banned)}
-                        disabled={actingId === u.id}
-                        className={`text-xs font-bold px-3 py-1.5 rounded disabled:opacity-50 ${
-                          u.banned
-                            ? 'border border-green-600 text-green-700 hover:bg-green-50'
-                            : 'border border-red-600 text-red-600 hover:bg-red-50'
-                        }`}
-                      >
-                        {actingId === u.id ? 'Updating...' : u.banned ? 'Unban' : 'Ban'}
-                      </button>
-                    )}
                     {canChangeRole && u.role !== 'admin' && (
                       <button
                         onClick={() => handleSetRole(u.id, u.display_name, 'admin')}
@@ -408,10 +442,51 @@ export default function AdminUsersPage() {
                       </button>
                     )}
                   </div>
+                </div>
 
-                  {canModerate && (
-                    <div className="flex gap-2 items-center">
-                      {isCurrentlySuspended ? (
+                {canModerate && (
+                  <div className="mt-4 pt-3 border-t space-y-3">
+                    {isAdmin && !u.banned && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-bold text-gray-500 w-16">Ban:</span>
+                        <select
+                          value={banReasons[u.id] ?? ''}
+                          onChange={(e) => setBanReasons((prev) => ({ ...prev, [u.id]: e.target.value }))}
+                          className="text-xs border rounded px-2 py-1.5 flex-1 min-w-[160px]"
+                        >
+                          <option value="">Select reason...</option>
+                          {BAN_REASONS.map((r) => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => toggleBan(u.id, u.display_name, false)}
+                          disabled={actingId === u.id}
+                          className="text-xs font-bold px-3 py-1.5 rounded border border-red-600 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          {actingId === u.id ? 'Updating...' : 'Ban'}
+                        </button>
+                      </div>
+                    )}
+
+                    {isAdmin && u.banned && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-gray-500 w-16">Ban:</span>
+                        <button
+                          onClick={() => toggleBan(u.id, u.display_name, true)}
+                          disabled={actingId === u.id}
+                          className="text-xs font-bold px-3 py-1.5 rounded border border-green-600 text-green-700 hover:bg-green-50 disabled:opacity-50"
+                        >
+                          {actingId === u.id ? 'Updating...' : 'Unban'}
+                        </button>
+                      </div>
+                    )}
+
+                    {isCurrentlySuspended ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-gray-500 w-16">Suspend:</span>
                         <button
                           onClick={() => handleUnsuspend(u.id, u.display_name)}
                           disabled={actingId === u.id}
@@ -419,33 +494,46 @@ export default function AdminUsersPage() {
                         >
                           {actingId === u.id ? 'Updating...' : 'Unsuspend'}
                         </button>
-                      ) : (
-                        <>
-                          <select
-                            value={suspendDurations[u.id] ?? 24}
-                            onChange={(e) =>
-                              setSuspendDurations((prev) => ({ ...prev, [u.id]: Number(e.target.value) }))
-                            }
-                            className="text-xs border rounded px-2 py-1.5"
-                          >
-                            {DURATION_OPTIONS.map((opt) => (
-                              <option key={opt.hours} value={opt.hours}>
-                                {opt.label}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            onClick={() => handleSuspend(u.id, u.display_name)}
-                            disabled={actingId === u.id}
-                            className="text-xs font-bold px-3 py-1.5 rounded border border-orange-600 text-orange-700 hover:bg-orange-50 disabled:opacity-50"
-                          >
-                            {actingId === u.id ? 'Updating...' : 'Suspend'}
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-bold text-gray-500 w-16">Suspend:</span>
+                        <select
+                          value={suspendReasons[u.id] ?? ''}
+                          onChange={(e) => setSuspendReasons((prev) => ({ ...prev, [u.id]: e.target.value }))}
+                          className="text-xs border rounded px-2 py-1.5 flex-1 min-w-[160px]"
+                        >
+                          <option value="">Select reason...</option>
+                          {SUSPEND_REASONS.map((r) => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={suspendDurations[u.id] ?? 24}
+                          onChange={(e) =>
+                            setSuspendDurations((prev) => ({ ...prev, [u.id]: Number(e.target.value) }))
+                          }
+                          className="text-xs border rounded px-2 py-1.5"
+                        >
+                          {DURATION_OPTIONS.map((opt) => (
+                            <option key={opt.hours} value={opt.hours}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => handleSuspend(u.id, u.display_name)}
+                          disabled={actingId === u.id}
+                          className="text-xs font-bold px-3 py-1.5 rounded border border-orange-600 text-orange-700 hover:bg-orange-50 disabled:opacity-50"
+                        >
+                          {actingId === u.id ? 'Updating...' : 'Suspend'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )
           })}
