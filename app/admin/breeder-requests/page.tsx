@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
+import { logAudit } from '@/lib/audit'
 import Header from '@/components/Header'
 
 type RoleRequest = {
@@ -94,6 +95,13 @@ export default function BreederRequestsPage() {
       return
     }
 
+    await logAudit(
+      'Approved breeder request',
+      'role_request',
+      request.id,
+      request.requester?.display_name ?? 'Unknown user'
+    )
+
     setRequests((prev) => prev.map((r) => (r.id === request.id ? { ...r, status: 'APPROVED' } : r)))
     setProcessingId(null)
   }
@@ -112,6 +120,13 @@ export default function BreederRequestsPage() {
       setProcessingId(null)
       return
     }
+
+    await logAudit(
+      'Rejected breeder request',
+      'role_request',
+      request.id,
+      request.requester?.display_name ?? 'Unknown user'
+    )
 
     setRequests((prev) => prev.map((r) => (r.id === request.id ? { ...r, status: 'REJECTED' } : r)))
     setProcessingId(null)
