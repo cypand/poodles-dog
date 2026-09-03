@@ -143,7 +143,6 @@ export default function Header() {
     };
   }, []);
 
-  // Presence ping: every logged-in user pings their own presence every 30s
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
 
@@ -161,7 +160,6 @@ export default function Header() {
     };
   }, []);
 
-  // Admin-only: load online now + logged in today
   useEffect(() => {
     if (!isAdmin) return;
 
@@ -204,6 +202,10 @@ export default function Header() {
   }, [isAdmin]);
 
   const handleLogout = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from('user_presence').delete().eq('user_id', user.id);
+    }
     await supabase.auth.signOut();
     router.push("/");
     router.refresh();
@@ -460,7 +462,7 @@ export default function Header() {
       </header>
 
       {isAdmin && (todayUsers.length > 0 || onlineUsers.length > 0) && (
-        <div className="bg-pd-black-2 text-white/70 text-xs px-4 py-2 flex flex-wrap gap-x-6 gap-y-1 border-b border-white/10">
+        <div className="fixed bottom-0 left-0 right-0 bg-pd-black text-white/70 text-[11px] px-4 py-2 flex flex-wrap gap-x-6 gap-y-1 border-t border-white/10 z-30">
           <span>
             🟢 Online now ({onlineUsers.length}): {onlineUsers.map((u) => u.name).join(', ') || '—'}
           </span>
