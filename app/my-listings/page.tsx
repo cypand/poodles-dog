@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Eye } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
 
@@ -15,6 +16,7 @@ type Listing = {
   created_at: string
   expires_at: string | null
   rejection_reason: string | null
+  view_count: number
   photos: { url: string; sort_order: number }[]
 }
 
@@ -23,26 +25,28 @@ export default function MyListingsPage() {
   const [loading, setLoading] = useState(true)
   const [listings, setListings] = useState<Listing[]>([])
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [renewingId, setRenewingId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
-
-      const { data } = await supabase
-        .from('listings')
-        .select(`id, title, price, currency_code, status, created_at, expires_at, rejection_reason, photos:listing_photos(url, sort_order)`)
-        .eq('breeder_id', user.id)
-        .order('created_at', { ascending: false })
-
-      setListings((data as unknown as Listing[]) ?? [])
-      setLoading(false)
+  const loadListings = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/login')
+      return
     }
-    load()
+
+    const { data } = await supabase
+      .from('listings')
+      .select(`id, title, price, currency_code, status, created_at, expires_at, rejection_reason, view_count, photos:listing_photos(url, sort_order)`)
+      .eq('breeder_id', user.id)
+      .order('created_at', { ascending: false })
+
+    setListings((data as unknown as Listing[]) ?? [])
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    loadListings()
   }, [router])
 
   const handleDelete = async (listingId: string) => {
@@ -63,6 +67,27 @@ export default function MyListingsPage() {
     setDeletingId(null)
   }
 
+  const handleRenew = async (listingId: string) => {
+    setRenewingId(listingId)
+    setError('')
+
+    const newExpiry = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()
+
+    const { error: renewError } = await supabase
+      .from('listings')
+      .update({ status: 'PENDING', expires_at: newExpiry })
+      .eq('id', listingId)
+
+    if (renewError) {
+      setError(renewError.message)
+      setRenewingId(null)
+      return
+    }
+
+    await loadListings()
+    setRenewingId(null)
+  }
+
   const statusBadge = (status: string) => {
     const styles: Record<string, string> = {
       ACTIVE: 'bg-green-100 text-green-700',
@@ -79,13 +104,15 @@ export default function MyListingsPage() {
     const expiresDate = new Date(listing.expires_at)
     const now = new Date()
 
-    if (listing.status === 'EXPIRED' || expiresDate < now) {
+    if (listing.status === 'EXPIRED' || (expiresDate < now && listing.status === 'ACTIVE')) {
       return (
         <span className="text-orange-600">
-          This listing has expired and is no longer visible in search. Delete it if the puppy has been sold, or contact us to reactivate.
+          This listing has expired. Delete it if sold, or renew below to relist.
         </span>
       )
     }
+
+    if (listing.status !== 'ACTIVE') return null
 
     const daysLeft = Math.ceil((expiresDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
     return (
@@ -121,6 +148,7 @@ export default function MyListingsPage() {
         <div className="space-y-4">
           {listings.map((listing) => {
             const photo = listing.photos?.sort((a, b) => a.sort_order - b.sort_order)[0]
+            const isExpired = listing.status === 'EXPIRED' || (listing.status === 'ACTIVE' && listing.expires_at && new Date(listing.expires_at) < new Date())
             return (
               <div key={listing.id} className="border rounded-md p-4 flex gap-4">
                 <div className="w-20 h-20 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
@@ -142,6 +170,9 @@ export default function MyListingsPage() {
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${statusBadge(listing.status)}`}>
                       {listing.status}
                     </span>
+                    <span className="flex items-center gap-1 text-xs text-gray-400">
+                      <Eye size={12} /> {listing.view_count ?? 0} views
+                    </span>
                   </div>
                   <p className="text-sm font-bold mt-1">
                     {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
@@ -151,6 +182,15 @@ export default function MyListingsPage() {
                   )}
                   <p className="text-xs mt-1">{expiryText(listing)}</p>
                   <div className="flex gap-2 mt-3 flex-wrap">
+                    {isExpired && (
+                      <button
+                        onClick={() => handleRenew(listing.id)}
+                        disabled={renewingId === listing.id}
+                        className="text-xs font-bold text-green-700 border border-green-600 px-3 py-1.5 hover:bg-green-50 disabled:opacity-50"
+                      >
+                        {renewingId === listing.id ? 'Renewing...' : 'Renew listing'}
+                      </button>
+                    )}
                     <Link
                       href={`/listing/${listing.id}/edit`}
                       className="text-xs font-bold text-blue-600 border border-blue-600 px-3 py-1.5 hover:bg-blue-50"
