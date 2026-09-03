@@ -16,8 +16,6 @@ type ConversationInfo = {
   id: string
   buyer_id: string
   breeder_id: string
-  buyer: { display_name: string | null } | null
-  breeder: { kennel_name: string | null } | null
 }
 
 export default function ConversationPage() {
@@ -29,6 +27,7 @@ export default function ConversationPage() {
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const [conversation, setConversation] = useState<ConversationInfo | null>(null)
+  const [otherName, setOtherName] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
@@ -45,21 +44,34 @@ export default function ConversationPage() {
 
       const { data: convo, error: convoError } = await supabase
         .from('conversations')
-        .select(
-          `id, buyer_id, breeder_id,
-           buyer:profiles!conversations_buyer_id_fkey(display_name),
-           breeder:breeder_profiles!conversations_breeder_id_fkey(kennel_name)`
-        )
+        .select('id, buyer_id, breeder_id')
         .eq('id', conversationId)
         .single()
 
       if (convoError || !convo) {
-        setError('Conversation not found or you do not have access.')
+        setError(`Conversation not found. Debug: ${convoError?.message ?? 'no data'}`)
         setLoading(false)
         return
       }
 
-      setConversation(convo as unknown as ConversationInfo)
+      setConversation(convo)
+
+      const isBuyer = convo.buyer_id === user.id
+      if (isBuyer) {
+        const { data: breederProfile } = await supabase
+          .from('breeder_profiles')
+          .select('kennel_name')
+          .eq('id', convo.breeder_id)
+          .single()
+        setOtherName(breederProfile?.kennel_name || 'Breeder')
+      } else {
+        const { data: buyerProfile } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('id', convo.buyer_id)
+          .single()
+        setOtherName(buyerProfile?.display_name || 'Buyer')
+      }
 
       const { data: msgs } = await supabase
         .from('messages')
@@ -130,11 +142,6 @@ export default function ConversationPage() {
       </>
     )
   }
-
-  const isBuyer = conversation.buyer_id === userId
-  const otherName = isBuyer
-    ? conversation.breeder?.kennel_name ?? 'Breeder'
-    : conversation.buyer?.display_name ?? 'Buyer'
 
   return (
     <>
