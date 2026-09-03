@@ -4,9 +4,35 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Heart, ChevronDown, MessageSquare } from "lucide-react";
+import { Heart, ChevronDown, MessageSquare, Search, X } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import IdleTimeout from "@/components/IdleTimeout";
+
+const SIZE_OPTIONS = [
+  { code: 'TOY', label: 'Toy (24–28cm)' },
+  { code: 'MINIATURE', label: 'Miniature (28–35cm)' },
+  { code: 'MEDIUM', label: 'Medium (35–45cm)' },
+  { code: 'STANDARD', label: 'Standard (45–60cm)' },
+]
+
+const SEX_OPTIONS = [
+  { code: 'MALE', label: 'Male' },
+  { code: 'FEMALE', label: 'Female' },
+]
+
+const REGION_OPTIONS = [
+  { code: 'EUROPE', label: 'Europe' },
+  { code: 'UK', label: 'UK' },
+  { code: 'NORTH_AMERICA', label: 'North America' },
+  { code: 'SOUTH_AMERICA', label: 'South America' },
+  { code: 'ASIA', label: 'Asia' },
+  { code: 'AFRICA', label: 'Africa' },
+  { code: 'OCEANIA', label: 'Oceania' },
+  { code: 'WORLDWIDE', label: 'Worldwide' },
+]
+
+type Colour = { code: string; label: string }
+type Country = { code: string; name: string }
 
 export default function Header() {
   const router = useRouter();
@@ -17,6 +43,16 @@ export default function Header() {
   const [pendingListingsCount, setPendingListingsCount] = useState(0);
   const [pendingReportsCount, setPendingReportsCount] = useState(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [colours, setColours] = useState<Colour[]>([]);
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [lookupsLoaded, setLookupsLoaded] = useState(false);
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+  const [selectedSexes, setSelectedSexes] = useState<string[]>([]);
+  const [selectedColours, setSelectedColours] = useState<string[]>([]);
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [openPanel, setOpenPanel] = useState<'size' | 'sex' | 'colour' | 'location' | null>(null);
 
   const isAdmin = role === "admin";
   const isModerator = role === "moderator";
@@ -89,6 +125,43 @@ export default function Header() {
     router.refresh();
   };
 
+  const toggleSearchPanel = async () => {
+    if (!searchOpen && !lookupsLoaded) {
+      const { data: coloursData } = await supabase.from('poodle_colours').select('code, label').order('label');
+      setColours(coloursData ?? []);
+      const { data: countryData } = await supabase.from('countries').select('code, name').order('name');
+      setCountries(countryData ?? []);
+      setLookupsLoaded(true);
+    }
+    setSearchOpen((v) => !v);
+    setOpenPanel(null);
+  };
+
+  const toggle = (list: string[], setList: (v: string[]) => void, code: string) => {
+    setList(list.includes(code) ? list.filter((c) => c !== code) : [...list, code]);
+  };
+
+  const summary = (list: string[], allLabels: { code: string; label: string }[], placeholder: string) => {
+    if (list.length === 0) return placeholder;
+    if (list.length === 1) {
+      const found = allLabels.find((o) => o.code === list[0]);
+      return found?.label ?? placeholder;
+    }
+    return `${list.length} selected`;
+  };
+
+  const handleSearchSubmit = () => {
+    const params = new URLSearchParams();
+    if (selectedSizes.length > 0) params.set('size', selectedSizes.join(','));
+    if (selectedSexes.length > 0) params.set('sex', selectedSexes.join(','));
+    if (selectedColours.length > 0) params.set('colour', selectedColours.join(','));
+    if (selectedLocations.length > 0) params.set('location', selectedLocations.join(','));
+    setSearchOpen(false);
+    router.push(`/search?${params.toString()}`);
+  };
+
+  const locationOptions = [...REGION_OPTIONS, ...countries.map((c) => ({ code: c.code, label: c.name }))];
+
   return (
     <>
       <IdleTimeout />
@@ -114,7 +187,7 @@ export default function Header() {
 
           <nav className="hidden lg:flex items-center gap-7 text-sm font-bold">
             <Link href="/search" className="text-pd-gold">
-              FIND POODLES
+              LISTINGS
             </Link>
             <Link href="/breeders" className="hover:text-pd-gold">
               BREEDERS
@@ -135,6 +208,9 @@ export default function Header() {
           <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm">
             <button className="hidden sm:flex items-center gap-1 text-white/80 hover:text-white">
               EN <ChevronDown size={12} />
+            </button>
+            <button onClick={toggleSearchPanel} aria-label="Search filters">
+              {searchOpen ? <X size={18} /> : <Search size={18} />}
             </button>
             <Link href="/favorites" aria-label="Favorites">
               <Heart size={18} />
@@ -232,7 +308,101 @@ export default function Header() {
             )}
           </div>
         </div>
+
+        {searchOpen && (
+          <div className="bg-white text-pd-black border-t border-black/10 py-5">
+            <div className="container-pd grid sm:grid-cols-2 md:grid-cols-5 gap-4 items-end relative">
+              <HeaderFilterField
+                label="SIZE"
+                summary={summary(selectedSizes, SIZE_OPTIONS, 'All Sizes')}
+                isOpen={openPanel === 'size'}
+                onToggleOpen={() => setOpenPanel(openPanel === 'size' ? null : 'size')}
+                options={SIZE_OPTIONS}
+                selected={selectedSizes}
+                onToggleOption={(code) => toggle(selectedSizes, setSelectedSizes, code)}
+              />
+              <HeaderFilterField
+                label="SEX"
+                summary={summary(selectedSexes, SEX_OPTIONS, 'Any')}
+                isOpen={openPanel === 'sex'}
+                onToggleOpen={() => setOpenPanel(openPanel === 'sex' ? null : 'sex')}
+                options={SEX_OPTIONS}
+                selected={selectedSexes}
+                onToggleOption={(code) => toggle(selectedSexes, setSelectedSexes, code)}
+              />
+              <HeaderFilterField
+                label="COLOUR"
+                summary={summary(selectedColours, colours, 'Any Colour')}
+                isOpen={openPanel === 'colour'}
+                onToggleOpen={() => setOpenPanel(openPanel === 'colour' ? null : 'colour')}
+                options={colours}
+                selected={selectedColours}
+                onToggleOption={(code) => toggle(selectedColours, setSelectedColours, code)}
+              />
+              <HeaderFilterField
+                label="LOCATION"
+                summary={summary(selectedLocations, locationOptions, 'Worldwide')}
+                isOpen={openPanel === 'location'}
+                onToggleOpen={() => setOpenPanel(openPanel === 'location' ? null : 'location')}
+                options={locationOptions}
+                selected={selectedLocations}
+                onToggleOption={(code) => toggle(selectedLocations, setSelectedLocations, code)}
+              />
+              <button
+                onClick={handleSearchSubmit}
+                className="bg-pd-black text-white font-bold text-sm h-11 flex items-center justify-center gap-2 hover:bg-pd-black-2"
+              >
+                SEARCH <Search size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </header>
     </>
   );
+}
+
+function HeaderFilterField({
+  label,
+  summary,
+  isOpen,
+  onToggleOpen,
+  options,
+  selected,
+  onToggleOption,
+}: {
+  label: string
+  summary: string
+  isOpen: boolean
+  onToggleOpen: () => void
+  options: { code: string; label: string }[]
+  selected: string[]
+  onToggleOption: (code: string) => void
+}) {
+  return (
+    <div className="relative flex flex-col gap-1">
+      <span className="text-[10px] font-bold tracking-wide text-pd-gray">{label}</span>
+      <button
+        type="button"
+        onClick={onToggleOpen}
+        className="border border-black/15 h-11 px-3 text-sm bg-white text-left truncate"
+      >
+        {summary}
+      </button>
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 w-64 max-h-64 overflow-y-auto bg-white border border-black/15 shadow-lg z-20 p-2">
+          {options.map((opt) => (
+            <label key={opt.code} className="flex items-center gap-2 py-1 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selected.includes(opt.code)}
+                onChange={() => onToggleOption(opt.code)}
+              />
+              {opt.label}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
