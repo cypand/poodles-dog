@@ -1,20 +1,37 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
+
+const REMEMBERED_EMAIL_KEY = 'poodles-remembered-email'
 
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(true)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const remembered = localStorage.getItem(REMEMBERED_EMAIL_KEY)
+    if (remembered) {
+      setEmail(remembered)
+      setRememberMe(true)
+    }
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
+
+    if (rememberMe) {
+      localStorage.setItem(REMEMBERED_EMAIL_KEY, email)
+    } else {
+      localStorage.removeItem(REMEMBERED_EMAIL_KEY)
+    }
 
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email,
@@ -81,6 +98,15 @@ export default function LoginPage() {
             Forgot password?
           </a>
         </div>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+          />
+          Remember my email
+        </label>
 
         {error && (
           <p className="text-red-600 text-sm">{error}</p>
