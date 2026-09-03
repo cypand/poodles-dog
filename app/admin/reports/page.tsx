@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
@@ -17,8 +18,33 @@ type Report = {
 }
 
 export default function AdminReportsPage() {
+  const router = useRouter()
+  const [hasAccess, setHasAccess] = useState(false)
+  const [checkingAccess, setCheckingAccess] = useState(true)
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+
+      if (profile?.role !== 'admin' && profile?.role !== 'moderator') {
+        setHasAccess(false)
+        setCheckingAccess(false)
+        return
+      }
+
+      setHasAccess(true)
+      setCheckingAccess(false)
+    }
+    checkAccess()
+  }, [router])
 
   const load = async () => {
     setLoading(true)
@@ -32,12 +58,32 @@ export default function AdminReportsPage() {
   }
 
   useEffect(() => {
-    load()
-  }, [])
+    if (hasAccess) load()
+  }, [hasAccess])
 
   const updateStatus = async (id: string, status: string) => {
     await supabase.from('reports').update({ status }).eq('id', id)
     setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
+  }
+
+  if (checkingAccess) {
+    return (
+      <>
+        <Header />
+        <div className="max-w-4xl mx-auto p-6 text-gray-500">Loading...</div>
+      </>
+    )
+  }
+
+  if (!hasAccess) {
+    return (
+      <>
+        <Header />
+        <div className="max-w-4xl mx-auto p-6">
+          <p className="text-red-600">You do not have access to this page.</p>
+        </div>
+      </>
+    )
   }
 
   return (
