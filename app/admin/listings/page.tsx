@@ -38,6 +38,7 @@ export default function AdminListingsPage() {
   const [hasAccess, setHasAccess] = useState(false)
   const [listings, setListings] = useState<Listing[]>([])
   const [actionError, setActionError] = useState('')
+  const [toast, setToast] = useState('')
   const [filter, setFilter] = useState<'PENDING' | 'ALL'>('PENDING')
   const [sortBy, setSortBy] = useState<SortOption>('newest')
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -90,6 +91,11 @@ export default function AdminListingsPage() {
     setPage(1)
   }, [filter, sortBy])
 
+  const showToast = (msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(''), 4000)
+  }
+
   const handleDecision = async (listingId: string, listingTitle: string, newStatus: 'ACTIVE' | 'REJECTED') => {
     setActionError('')
 
@@ -120,6 +126,7 @@ export default function AdminListingsPage() {
     setListings((prev) => prev.filter((l) => l.id !== listingId))
 
     if (newStatus === 'ACTIVE') {
+      showToast('Approved! Another Poodle closer to their new family. 🏡')
       fetch('/api/notify-alerts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -186,6 +193,12 @@ export default function AdminListingsPage() {
     <>
       <Header />
       <div className="max-w-3xl mx-auto p-6">
+        {toast && (
+          <div className="bg-green-50 border border-green-200 text-green-800 rounded-md px-4 py-3 mb-4 text-sm">
+            {toast}
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <h1 className="text-2xl font-bold">
             {filter === 'PENDING' ? `Pending Listings (${sortedListings.length})` : `All Listings (${sortedListings.length})`}
