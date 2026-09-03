@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
+import { logAudit } from '@/lib/audit'
 import Header from '@/components/Header'
 
 const SIZE_OPTIONS = [
@@ -69,6 +70,7 @@ export default function AdminEditListingPage() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -79,6 +81,7 @@ export default function AdminEditListingPage() {
   const [countries, setCountries] = useState<Country[]>([])
   const [existingPhotos, setExistingPhotos] = useState<Photo[]>([])
   const [newPhotos, setNewPhotos] = useState<(File | null)[]>([null, null, null])
+  const [listingTitle, setListingTitle] = useState('')
 
   const [form, setForm] = useState<EditForm>({
     listing_type: 'PUPPY',
@@ -153,6 +156,8 @@ export default function AdminEditListingPage() {
 
       const size = Array.isArray(listing.size) ? listing.size[0] : listing.size
       const colour = Array.isArray(listing.colour) ? listing.colour[0] : listing.colour
+
+      setListingTitle(listing.title ?? '')
 
       setForm({
         listing_type: listing.listing_type ?? 'PUPPY',
@@ -276,8 +281,29 @@ export default function AdminEditListingPage() {
       })
     }
 
+    await logAudit('Edited listing', 'listing', listingId, form.title || listingTitle || 'Untitled listing')
+
     setSaving(false)
     setSuccess(true)
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this listing permanently? This cannot be undone.')) return
+
+    setDeleting(true)
+    setError('')
+
+    const { error: deleteError } = await supabase.from('listings').delete().eq('id', listingId)
+
+    if (deleteError) {
+      setError(deleteError.message)
+      setDeleting(false)
+      return
+    }
+
+    await logAudit('Deleted listing', 'listing', listingId, form.title || listingTitle || 'Untitled listing')
+
+    router.push('/admin/listings')
   }
 
   if (loading) {
@@ -586,19 +612,27 @@ export default function AdminEditListingPage() {
             ))}
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-4 flex-wrap">
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || deleting}
               className="px-6 py-2 bg-black text-white rounded-md disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save changes'}
             </button>
             <button
               onClick={() => router.push('/admin/listings')}
-              className="px-6 py-2 border rounded-md"
+              disabled={saving || deleting}
+              className="px-6 py-2 border rounded-md disabled:opacity-50"
             >
               Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={saving || deleting}
+              className="px-6 py-2 bg-red-600 text-white rounded-md disabled:opacity-50 ml-auto"
+            >
+              {deleting ? 'Deleting...' : 'Delete listing'}
             </button>
           </div>
         </div>
