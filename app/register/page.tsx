@@ -49,7 +49,11 @@ export default function RegisterPage() {
     })
 
     if (signUpError) {
-      setError(signUpError.message)
+      if (signUpError.message.toLowerCase().includes('display_name') || signUpError.message.toLowerCase().includes('duplicate')) {
+        setError('That display name is already taken. Please choose a different one.')
+      } else {
+        setError(signUpError.message)
+      }
       setLoading(false)
       return
     }
@@ -148,6 +152,7 @@ export default function RegisterPage() {
             onChange={(e) => setDisplayName(e.target.value)}
             className="w-full border rounded-md px-3 py-2"
           />
+          <p className="text-xs text-gray-400 mt-1">Must be unique — this is how other users will see you.</p>
         </div>
 
         <div>
