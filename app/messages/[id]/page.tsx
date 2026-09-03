@@ -162,7 +162,9 @@ export default function ConversationPage() {
     return (
       <>
         <Header />
-        <div className="max-w-2xl mx-auto p-6 text-gray-500">Loading...</div>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-2xl mx-auto p-6 text-pd-gray">Loading...</div>
+        </div>
       </>
     )
   }
@@ -171,8 +173,10 @@ export default function ConversationPage() {
     return (
       <>
         <Header />
-        <div className="max-w-2xl mx-auto p-6">
-          <p className="text-red-600">{error || 'Conversation not found.'}</p>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-2xl mx-auto p-6">
+            <p className="text-red-600">{error || 'Conversation not found.'}</p>
+          </div>
         </div>
       </>
     )
@@ -181,74 +185,76 @@ export default function ConversationPage() {
   return (
     <>
       <Header />
-      <div className="max-w-2xl mx-auto p-6 flex flex-col" style={{ minHeight: '70vh' }}>
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold">{otherName}</h1>
-          <button
-            onClick={handleToggleBlock}
-            className={`text-xs font-bold px-3 py-1.5 rounded-md border ${
-              hasBlockedOther
-                ? 'border-green-600 text-green-700 hover:bg-green-50'
-                : 'border-red-600 text-red-600 hover:bg-red-50'
-            }`}
-          >
-            {hasBlockedOther ? 'Unblock' : 'Block'}
-          </button>
-        </div>
-
-        {isBlocked && (
-          <p className="text-sm text-orange-600 bg-orange-50 border border-orange-200 rounded-md p-3 mb-3">
-            This user has blocked you. You can't send new messages in this conversation.
-          </p>
-        )}
-
-        {hasBlockedOther && (
-          <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-md p-3 mb-3">
-            You've blocked this user. Unblock them to send new messages.
-          </p>
-        )}
-
-        <div className="flex-1 space-y-3 mb-4">
-          {messages.map((m) => {
-            const isMine = m.sender_id === userId
-            return (
-              <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
-                    isMine ? 'bg-black text-white' : 'bg-gray-100 text-gray-900'
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap">{m.body}</p>
-                  <p className={`text-[10px] mt-1 ${isMine ? 'text-white/60' : 'text-gray-400'}`}>
-                    {new Date(m.created_at).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            )
-          })}
-          <div ref={bottomRef} />
-        </div>
-
-        {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
-
-        {!isBlocked && !hasBlockedOther && (
-          <div className="flex gap-2 sticky bottom-4 bg-white pt-2">
-            <textarea
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-              rows={2}
-              className="flex-1 border rounded-md px-3 py-2 text-sm"
-            />
+      <div className="bg-pd-cream min-h-screen">
+        <div className="max-w-2xl mx-auto p-6 flex flex-col" style={{ minHeight: '70vh' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-bold text-pd-black">{otherName}</h1>
             <button
-              onClick={handleSend}
-              disabled={sending || !newMessage.trim()}
-              className="bg-black text-white px-4 rounded-md text-sm font-bold disabled:opacity-50"
+              onClick={handleToggleBlock}
+              className={`text-xs font-bold px-3 py-1.5 rounded-md border bg-white ${
+                hasBlockedOther
+                  ? 'border-green-600 text-green-700 hover:bg-green-50'
+                  : 'border-red-600 text-red-600 hover:bg-red-50'
+              }`}
             >
-              Send
+              {hasBlockedOther ? 'Unblock' : 'Block'}
             </button>
           </div>
-        )}
+
+          {isBlocked && (
+            <p className="text-sm text-orange-600 bg-orange-50 border border-orange-200 rounded-md p-3 mb-3">
+              This user has blocked you. You can't send new messages in this conversation.
+            </p>
+          )}
+
+          {hasBlockedOther && (
+            <p className="text-sm text-pd-gray bg-white border border-pd-black/10 rounded-md p-3 mb-3">
+              You've blocked this user. Unblock them to send new messages.
+            </p>
+          )}
+
+          <div className="flex-1 space-y-3 mb-4">
+            {messages.map((m) => {
+              const isMine = m.sender_id === userId
+              return (
+                <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
+                      isMine ? 'bg-pd-black text-pd-gold' : 'bg-white text-pd-black border border-pd-black/10'
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap">{m.body}</p>
+                    <p className={`text-[10px] mt-1 ${isMine ? 'text-pd-gold/60' : 'text-pd-gray'}`}>
+                      {new Date(m.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+            <div ref={bottomRef} />
+          </div>
+
+          {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
+
+          {!isBlocked && !hasBlockedOther && (
+            <div className="flex gap-2 sticky bottom-4 bg-pd-cream pt-2">
+              <textarea
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a message..."
+                rows={2}
+                className="flex-1 border border-pd-black/15 rounded-md px-3 py-2 text-sm bg-white"
+              />
+              <button
+                onClick={handleSend}
+                disabled={sending || !newMessage.trim()}
+                className="bg-pd-black text-pd-gold px-4 rounded-md text-sm font-bold disabled:opacity-50"
+              >
+                Send
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </>
   )
