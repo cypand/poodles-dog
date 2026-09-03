@@ -1,622 +1,433 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
+import { Flag } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
 
-const SIZE_OPTIONS = [
-  { code: 'TOY', label: 'Toy (24–28cm)' },
-  { code: 'MINIATURE', label: 'Miniature (28–35cm)' },
-  { code: 'MEDIUM', label: 'Medium (35–45cm)' },
-  { code: 'STANDARD', label: 'Standard (45–60cm)' },
-]
-
-const SELL_SCOPE_OPTIONS = [
-  { code: 'OWN_COUNTRY', label: 'Own country only' },
-  { code: 'EUROPE', label: 'Europe' },
-  { code: 'UK', label: 'UK' },
-  { code: 'NORTH_AMERICA', label: 'North America' },
-  { code: 'SOUTH_AMERICA', label: 'South America' },
-  { code: 'ASIA', label: 'Asia' },
-  { code: 'AFRICA', label: 'Africa' },
-  { code: 'OCEANIA', label: 'Oceania' },
-  { code: 'WORLDWIDE', label: 'Worldwide' },
-]
-
-const TRANSPORT_OPTIONS = [
-  { code: 'GROUND', label: 'By car / ground transport' },
-  { code: 'AIR_CARGO', label: 'By plane / air cargo' },
-  { code: 'BUYER_COLLECTION', label: 'New owner collects in person' },
-  { code: 'FLIGHT_NANNY', label: 'Courier / transport company' },
-  { code: 'ANY', label: 'Any of the above / no preference' },
-]
-
-type Colour = { id: number; code: string; label: string }
-type Size = { id: number; code: string; label: string }
-type Currency = { code: string; symbol: string }
-type Country = { code: string; name: string }
-type Photo = { id: number; url: string; sort_order: number }
-
-type EditForm = {
-  listing_type: string
+type ListingDetail = {
+  id: string
+  breeder_id: string
   title: string
-  description: string
-  sex: string
-  date_of_birth: string
-  ready_from: string
-  males_available: string
-  females_available: string
-  size_code: string
-  colour_code: string
-  has_pedigree: boolean
-  kennel_registration_name: string
-  registration_number: string
-  microchipped: boolean
-  vaccinated: boolean
-  price: string
-  currency_code: string
-  country_code: string
-  sell_scope: string[]
-  transport_options: string[]
+  description: string | null
+  price: number | null
+  currency_code: string | null
+  country_code: string | null
+  city: string | null
+  sell_scope: string[] | null
+  sex: string | null
+  date_of_birth: string | null
+  ready_from: string | null
+  has_pedigree: boolean | null
+  kennel_registration_name: string | null
+  registration_number: string | null
+  microchipped: boolean | null
+  vaccinated: boolean | null
+  created_at: string
+  size: { label: string } | null
+  colour: { label: string } | null
+  country: { name: string } | null
+  registry: { name: string } | null
+  breeder: { kennel_name: string } | null
+  photos: { url: string; sort_order: number }[]
 }
 
-type AccessState = 'checking' | 'not_logged_in' | 'not_owner' | 'allowed'
+const REPORT_REASONS = [
+  'Scam / fraudulent listing',
+  'Animal welfare concern',
+  'Fake or misleading photos',
+  'Inappropriate content',
+  'Other',
+]
 
-export default function EditListingPage() {
-  const router = useRouter()
+export default function ListingDetailPage() {
   const params = useParams()
-  const listingId = params.id as string
+  const listingId = params?.id as string
 
-  const [access, setAccess] = useState<AccessState>('checking')
+  const [listing, setListing] = useState<ListingDetail | null>(null)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
+  const [activePhoto, setActivePhoto] = useState(0)
+  const [canEdit, setCanEdit] = useState(false)
 
-  const [sizes, setSizes] = useState<Size[]>([])
-  const [colours, setColours] = useState<Colour[]>([])
-  const [currencies, setCurrencies] = useState<Currency[]>([])
-  const [countries, setCountries] = useState<Country[]>([])
-  const [existingPhotos, setExistingPhotos] = useState<Photo[]>([])
-  const [newPhotos, setNewPhotos] = useState<(File | null)[]>([null, null, null])
+  const [senderName, setSenderName] = useState('')
+  const [senderEmail, setSenderEmail] = useState('')
+  const [senderCountry, setSenderCountry] = useState('')
+  const [message, setMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [sendError, setSendError] = useState('')
 
-  const [form, setForm] = useState<EditForm>({
-    listing_type: 'PUPPY',
-    title: '',
-    description: '',
-    sex: '',
-    date_of_birth: '',
-    ready_from: '',
-    males_available: '',
-    females_available: '',
-    size_code: '',
-    colour_code: '',
-    has_pedigree: false,
-    kennel_registration_name: '',
-    registration_number: '',
-    microchipped: false,
-    vaccinated: false,
-    price: '',
-    currency_code: 'EUR',
-    country_code: '',
-    sell_scope: [],
-    transport_options: [],
-  })
+  const [showReportForm, setShowReportForm] = useState(false)
+  const [reportReason, setReportReason] = useState('')
+  const [reportDetails, setReportDetails] = useState('')
+  const [reportEmail, setReportEmail] = useState('')
+  const [reportSending, setReportSending] = useState(false)
+  const [reportSent, setReportSent] = useState(false)
+  const [reportError, setReportError] = useState('')
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setAccess('not_logged_in')
-        setLoading(false)
-        return
-      }
+      if (!listingId) return
+      setLoading(true)
 
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-
-      const { data: listing, error: listingError } = await supabase
+      const { data } = await supabase
         .from('listings')
         .select(
-          `breeder_id, listing_type, title, description, sex, date_of_birth, ready_from,
-           males_available, females_available, has_pedigree, kennel_registration_name,
-           registration_number, microchipped, vaccinated, price,
-           currency_code, country_code, sell_scope, transport_options,
-           size:poodle_sizes(code), colour:poodle_colours(code),
-           photos:listing_photos(id, url, sort_order)`
+          `id, breeder_id, title, description, price, currency_code, country_code, city, sell_scope,
+           sex, date_of_birth, ready_from, has_pedigree, kennel_registration_name, registration_number,
+           microchipped, vaccinated, created_at,
+           size:poodle_sizes(label),
+           colour:poodle_colours(label),
+           country:countries(name),
+           registry:registries(name),
+           breeder:breeder_profiles(kennel_name),
+           photos:listing_photos(url, sort_order)`
         )
         .eq('id', listingId)
         .single()
 
-      if (listingError || !listing) {
-        setError(`Listing not found. Debug: ${listingError?.message ?? 'no listing returned'}`)
-        setLoading(false)
-        return
-      }
-
-      const isOwner = listing.breeder_id === user.id
-      const isAdmin = profile?.role === 'admin'
-
-      if (!isOwner && !isAdmin) {
-        setAccess('not_owner')
-        setLoading(false)
-        return
-      }
-
-      setAccess('allowed')
-
-      const { data: sizesData } = await supabase.from('poodle_sizes').select('id, code, label').order('label')
-      setSizes(sizesData ?? [])
-
-      const { data: coloursData } = await supabase.from('poodle_colours').select('id, code, label').order('label')
-      setColours(coloursData ?? [])
-
-      const { data: currencyData } = await supabase.from('currencies').select('code, symbol').order('code')
-      setCurrencies(currencyData ?? [])
-
-      const { data: countryData } = await supabase.from('countries').select('code, name').order('name')
-      setCountries(countryData ?? [])
-
-      const size = Array.isArray(listing.size) ? listing.size[0] : listing.size
-      const colour = Array.isArray(listing.colour) ? listing.colour[0] : listing.colour
-
-      setForm({
-        listing_type: listing.listing_type ?? 'PUPPY',
-        title: listing.title ?? '',
-        description: listing.description ?? '',
-        sex: listing.sex ?? '',
-        date_of_birth: listing.date_of_birth ?? '',
-        ready_from: listing.ready_from ?? '',
-        males_available: listing.males_available?.toString() ?? '',
-        females_available: listing.females_available?.toString() ?? '',
-        size_code: size?.code ?? '',
-        colour_code: colour?.code ?? '',
-        has_pedigree: listing.has_pedigree ?? false,
-        kennel_registration_name: listing.kennel_registration_name ?? '',
-        registration_number: listing.registration_number ?? '',
-        microchipped: listing.microchipped ?? false,
-        vaccinated: listing.vaccinated ?? false,
-        price: listing.price?.toString() ?? '',
-        currency_code: listing.currency_code ?? 'EUR',
-        country_code: listing.country_code ?? '',
-        sell_scope: listing.sell_scope ?? [],
-        transport_options: listing.transport_options ?? [],
-      })
-
-      setExistingPhotos(((listing.photos as unknown as Photo[]) ?? []).sort((a, b) => a.sort_order - b.sort_order))
+      setListing((data as unknown as ListingDetail) ?? null)
       setLoading(false)
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user && data) {
+        const isOwner = (data as unknown as ListingDetail).breeder_id === user.id
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        setCanEdit(isOwner || profile?.role === 'admin')
+      }
     }
     load()
   }, [listingId])
 
-  const update = (field: keyof EditForm, value: string) => {
-    setForm({ ...form, [field]: value })
-  }
+  const handleSendInquiry = async () => {
+    if (!listing) return
+    setSendError('')
 
-  const toggleBoolean = (field: 'microchipped' | 'vaccinated' | 'has_pedigree') => {
-    setForm((prev) => ({ ...prev, [field]: !prev[field] }))
-  }
-
-  const toggleListValue = (field: 'sell_scope' | 'transport_options', code: string) => {
-    setForm((prev) => {
-      const list = prev[field]
-      const has = list.includes(code)
-      return { ...prev, [field]: has ? list.filter((v) => v !== code) : [...list, code] }
-    })
-  }
-
-  const handleDeleteExistingPhoto = async (photo: Photo) => {
-    if (!confirm('Remove this photo?')) return
-    await supabase.from('listing_photos').delete().eq('id', photo.id)
-    setExistingPhotos((prev) => prev.filter((p) => p.id !== photo.id))
-  }
-
-  const handleNewPhotoChange = (index: number, file: File | null) => {
-    const copy = [...newPhotos]
-    copy[index] = file
-    setNewPhotos(copy)
-  }
-
-  const handleSave = async () => {
-    setSaving(true)
-    setError('')
-    setSuccess(false)
-
-    const sizeMatch = sizes.find((s) => s.code === form.size_code)
-    const colourMatch = colours.find((c) => c.code === form.colour_code)
-
-    const { error: updateError } = await supabase
-      .from('listings')
-      .update({
-        listing_type: form.listing_type,
-        title: form.title,
-        description: form.description,
-        sex: form.sex,
-        date_of_birth: form.date_of_birth || null,
-        ready_from: form.ready_from || null,
-        males_available: form.males_available ? Number(form.males_available) : null,
-        females_available: form.females_available ? Number(form.females_available) : null,
-        size_id: sizeMatch?.id ?? null,
-        colour_id: colourMatch?.id ?? null,
-        has_pedigree: form.has_pedigree,
-        kennel_registration_name: form.kennel_registration_name || null,
-        registration_number: form.registration_number || null,
-        microchipped: form.microchipped,
-        vaccinated: form.vaccinated,
-        price: form.price ? Number(form.price) : null,
-        currency_code: form.currency_code,
-        country_code: form.country_code,
-        sell_scope: form.sell_scope.length > 0 ? form.sell_scope : null,
-        transport_options: form.transport_options.length > 0 ? form.transport_options : null,
-        status: 'PENDING',
-      })
-      .eq('id', listingId)
-
-    if (updateError) {
-      setError(updateError.message)
-      setSaving(false)
+    if (!senderName || !senderEmail || !message) {
+      setSendError('Please fill in your name, email, and a message.')
       return
     }
 
-    const startIndex = existingPhotos.length
-    for (let i = 0; i < newPhotos.length; i++) {
-      const file = newPhotos[i]
-      if (!file) continue
+    setSending(true)
 
-      const fileExt = file.name.split('.').pop()
-      const filePath = `${listingId}/${startIndex + i}-${Date.now()}.${fileExt}`
+    const { error } = await supabase.from('inquiries').insert({
+      listing_id: listing.id,
+      breeder_id: listing.breeder_id,
+      sender_name: senderName,
+      sender_email: senderEmail,
+      sender_country: senderCountry || null,
+      message,
+    })
 
-      const { error: uploadError } = await supabase.storage
-        .from('listing-photos')
-        .upload(filePath, file, { upsert: true })
-
-      if (uploadError) continue
-
-      const { data: publicUrlData } = supabase.storage.from('listing-photos').getPublicUrl(filePath)
-
-      await supabase.from('listing_photos').insert({
-        listing_id: listingId,
-        url: publicUrlData.publicUrl,
-        sort_order: startIndex + i,
-      })
+    if (error) {
+      setSendError('Something went wrong sending your message. Please try again.')
+      setSending(false)
+      return
     }
 
-    fetch('/api/notify-admin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ listing_id: listingId }),
-    }).catch(() => {})
+    setSent(true)
+    setSending(false)
+  }
 
-    setSaving(false)
-    setSuccess(true)
+  const handleSubmitReport = async () => {
+    if (!listing) return
+    setReportError('')
+
+    if (!reportReason) {
+      setReportError('Please select a reason.')
+      return
+    }
+
+    setReportSending(true)
+
+    const { error } = await supabase.from('reports').insert({
+      listing_id: listing.id,
+      reporter_email: reportEmail || null,
+      reason: reportReason,
+      details: reportDetails || null,
+      status: 'PENDING',
+    })
+
+    if (error) {
+      setReportError('Something went wrong submitting your report. Please try again.')
+      setReportSending(false)
+      return
+    }
+
+    setReportSent(true)
+    setReportSending(false)
   }
 
   if (loading) {
     return (
       <>
         <Header />
-        <div className="max-w-2xl mx-auto mt-16 p-6 text-gray-500">Loading...</div>
+        <div className="max-w-5xl mx-auto p-6 text-gray-500">Loading...</div>
       </>
     )
   }
 
-  if (access === 'not_logged_in') {
+  if (!listing) {
     return (
       <>
         <Header />
-        <div className="max-w-md mx-auto mt-16 p-6 text-center">
-          <h1 className="text-2xl font-bold mb-3">Sign in required</h1>
-          <a href="/login" className="inline-block bg-black text-white font-bold px-6 py-3">
-            Sign in
-          </a>
-        </div>
+        <div className="max-w-5xl mx-auto p-6 text-gray-500">Listing not found.</div>
       </>
     )
   }
 
-  if (access === 'not_owner') {
-    return (
-      <>
-        <Header />
-        <div className="max-w-md mx-auto mt-16 p-6 text-center">
-          <p className="text-red-600">You do not have access to edit this listing.</p>
-        </div>
-      </>
-    )
-  }
+  const sortedPhotos = [...(listing.photos ?? [])].sort((a, b) => a.sort_order - b.sort_order)
 
   return (
     <>
       <Header />
-      <div className="max-w-2xl mx-auto mt-10 p-6 mb-16">
-        <h1 className="text-2xl font-bold mb-2">Edit Listing</h1>
-        <p className="text-sm text-gray-500 mb-6">
-          Saving changes will put this listing back into review (Pending) until an admin approves it again.
-        </p>
-
-        {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
-        {success && (
-          <p className="text-green-600 text-sm mb-4">
-            Saved! Your listing is pending admin review before it goes live again.
-          </p>
-        )}
-
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium mb-1">Listing type</label>
-            <select
-              value={form.listing_type}
-              onChange={(e) => update('listing_type', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            >
-              <option value="PUPPY">Puppy</option>
-              <option value="YOUNG_DOG">Young dog</option>
-              <option value="ADULT_DOG">Adult dog</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Sex</label>
-            <select
-              value={form.sex}
-              onChange={(e) => update('sex', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            >
-              <option value="">Select</option>
-              <option value="MALE">Male</option>
-              <option value="FEMALE">Female</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Title</label>
-            <input
-              type="text"
-              value={form.title}
-              onChange={(e) => update('title', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <textarea
-              value={form.description}
-              onChange={(e) => update('description', e.target.value)}
-              rows={4}
-              className="w-full border rounded-md px-3 py-2"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Date of birth</label>
-              <input
-                type="date"
-                value={form.date_of_birth}
-                onChange={(e) => update('date_of_birth', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
+      <div className="max-w-5xl mx-auto p-6 grid md:grid-cols-2 gap-8">
+        {/* Left: photos + details */}
+        <div>
+          <div className="aspect-square bg-gray-100 rounded-md overflow-hidden mb-3">
+            {sortedPhotos[activePhoto] ? (
+              <img
+                src={sortedPhotos[activePhoto].url}
+                alt={listing.title}
+                className="w-full h-full object-cover"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Ready from</label>
-              <input
-                type="date"
-                value={form.ready_from}
-                onChange={(e) => update('ready_from', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+                No photo
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Males available</label>
-              <input
-                type="number"
-                min="0"
-                value={form.males_available}
-                onChange={(e) => update('males_available', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Females available</label>
-              <input
-                type="number"
-                min="0"
-                value={form.females_available}
-                onChange={(e) => update('females_available', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Size</label>
-            <select
-              value={form.size_code}
-              onChange={(e) => update('size_code', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            >
-              <option value="">Select a size</option>
-              {SIZE_OPTIONS.map((s) => (
-                <option key={s.code} value={s.code}>
-                  {s.label}
-                </option>
+          {sortedPhotos.length > 1 && (
+            <div className="flex gap-2 mb-6">
+              {sortedPhotos.map((p, i) => (
+                <button
+                  key={p.url}
+                  onClick={() => setActivePhoto(i)}
+                  className={`w-16 h-16 rounded-md overflow-hidden border-2 ${
+                    i === activePhoto ? 'border-pd-gold' : 'border-transparent'
+                  }`}
+                >
+                  <img src={p.url} alt="" className="w-full h-full object-cover" />
+                </button>
               ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Colour</label>
-            <select
-              value={form.colour_code}
-              onChange={(e) => update('colour_code', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            >
-              <option value="">Select a colour</option>
-              {colours.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={form.has_pedigree} onChange={() => toggleBoolean('has_pedigree')} />
-            Has pedigree
-          </label>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Kennel name</label>
-            <input
-              type="text"
-              value={form.kennel_registration_name}
-              onChange={(e) => update('kennel_registration_name', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Registration number</label>
-            <input
-              type="text"
-              value={form.registration_number}
-              onChange={(e) => update('registration_number', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={form.microchipped} onChange={() => toggleBoolean('microchipped')} />
-              Microchipped
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={form.vaccinated} onChange={() => toggleBoolean('vaccinated')} />
-              Vaccinated
-            </label>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2">
-              <label className="block text-sm font-medium mb-1">Price</label>
-              <input
-                type="number"
-                min="0"
-                value={form.price}
-                onChange={(e) => update('price', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Currency</label>
-              <select
-                value={form.currency_code}
-                onChange={(e) => update('currency_code', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
+          )}
+
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="text-2xl font-bold mb-1">{listing.title || 'Untitled listing'}</h1>
+            {canEdit && (
+              <a
+                href={`/listing/${listing.id}/edit`}
+                className="flex-shrink-0 text-xs font-bold text-blue-600 border border-blue-600 px-3 py-1.5 rounded-md hover:bg-blue-50"
               >
-                {currencies.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.code} ({c.symbol})
-                  </option>
-                ))}
-              </select>
+                Edit
+              </a>
+            )}
+          </div>
+          <p className="text-gray-500 mb-4">{listing.breeder?.kennel_name ?? 'Unknown kennel'}</p>
+
+          <p className="text-2xl font-bold text-pd-black mb-6">
+            {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
+          </p>
+
+          <div className="grid grid-cols-2 gap-y-3 text-sm mb-6">
+            <div>
+              <span className="text-gray-500 block">Sex</span>
+              <span className="font-medium">{listing.sex ?? '—'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500 block">Size</span>
+              <span className="font-medium">{listing.size?.label ?? '—'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500 block">Colour</span>
+              <span className="font-medium">{listing.colour?.label ?? '—'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500 block">Date of birth</span>
+              <span className="font-medium">{listing.date_of_birth ?? '—'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500 block">Ready from</span>
+              <span className="font-medium">{listing.ready_from ?? '—'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500 block">Location</span>
+              <span className="font-medium">
+                {listing.city ? `${listing.city}, ` : ''}
+                {listing.country?.name ?? '—'}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-500 block">Pedigree</span>
+              <span className="font-medium">{listing.has_pedigree ? 'Yes' : 'No'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500 block">Registry</span>
+              <span className="font-medium">{listing.registry?.name ?? '—'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500 block">Microchipped</span>
+              <span className="font-medium">{listing.microchipped ? 'Yes' : 'No'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500 block">Vaccinated</span>
+              <span className="font-medium">{listing.vaccinated ? 'Yes' : 'No'}</span>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Country</label>
-            <select
-              value={form.country_code}
-              onChange={(e) => update('country_code', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            >
-              <option value="">Select a country</option>
-              {countries.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {listing.description && (
+            <div className="mb-6">
+              <h2 className="font-semibold mb-1">Description</h2>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{listing.description}</p>
+            </div>
+          )}
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Willing to send to</label>
-            <div className="space-y-2">
-              {SELL_SCOPE_OPTIONS.map((s) => (
-                <label key={s.code} className="flex items-center gap-2">
+        {/* Right: contact breeder form */}
+        <div>
+          <div className="border rounded-md p-5 sticky top-6">
+            <h2 className="font-bold text-lg mb-4">Contact the breeder</h2>
+
+            {sent ? (
+              <p className="text-green-700 text-sm">
+                Your message has been sent to the breeder. They will contact you directly at the email
+                you provided.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Your name</label>
                   <input
-                    type="checkbox"
-                    checked={form.sell_scope.includes(s.code)}
-                    onChange={() => toggleListValue('sell_scope', s.code)}
+                    type="text"
+                    value={senderName}
+                    onChange={(e) => setSenderName(e.target.value)}
+                    className="w-full border rounded-md px-3 py-2 text-sm"
                   />
-                  {s.label}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Transport options</label>
-            <div className="space-y-2">
-              {TRANSPORT_OPTIONS.map((t) => (
-                <label key={t.code} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={form.transport_options.includes(t.code)}
-                    onChange={() => toggleListValue('transport_options', t.code)}
-                  />
-                  {t.label}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Photos</label>
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {existingPhotos.map((photo) => (
-                <div key={photo.id} className="relative">
-                  <img src={photo.url} alt="Listing" className="w-full h-24 object-cover rounded-md" />
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteExistingPhoto(photo)}
-                    className="absolute top-1 right-1 bg-red-600 text-white text-xs w-5 h-5 rounded-full"
-                  >
-                    ✕
-                  </button>
                 </div>
-              ))}
-            </div>
-            <p className="text-sm text-gray-500 mb-2">Add more photos:</p>
-            {[0, 1, 2].map((i) => (
-              <input
-                key={i}
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleNewPhotoChange(i, e.target.files?.[0] ?? null)}
-                className="w-full text-sm mb-2"
-              />
-            ))}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Your email</label>
+                  <input
+                    type="email"
+                    value={senderEmail}
+                    onChange={(e) => setSenderEmail(e.target.value)}
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Your country (optional)</label>
+                  <input
+                    type="text"
+                    value={senderCountry}
+                    onChange={(e) => setSenderCountry(e.target.value)}
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Message</label>
+                  <textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    rows={5}
+                    placeholder="I'm interested in this listing, could you tell me more about..."
+                    className="w-full border rounded-md px-3 py-2 text-sm"
+                  />
+                </div>
+
+                {sendError && <p className="text-red-600 text-sm">{sendError}</p>}
+
+                <button
+                  onClick={handleSendInquiry}
+                  disabled={sending}
+                  className="w-full bg-pd-black text-white font-bold text-sm py-3 disabled:opacity-50"
+                >
+                  {sending ? 'Sending...' : 'Send message'}
+                </button>
+              </div>
+            )}
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="px-6 py-2 bg-black text-white rounded-md disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : 'Save changes'}
-            </button>
-            <button
-              onClick={() => router.push('/my-listings')}
-              className="px-6 py-2 border rounded-md"
-            >
-              Cancel
-            </button>
+          <div className="mt-4">
+            {!showReportForm ? (
+              <button
+                onClick={() => setShowReportForm(true)}
+                className="flex items-center gap-1.5 text-gray-500 text-xs font-medium hover:text-red-600"
+              >
+                <Flag size={13} /> Report this listing
+              </button>
+            ) : (
+              <div className="border rounded-md p-4">
+                <h3 className="font-semibold text-sm mb-3 flex items-center gap-1.5">
+                  <Flag size={14} /> Report this listing
+                </h3>
+
+                {reportSent ? (
+                  <p className="text-green-700 text-sm">
+                    Thanks, your report has been submitted. Our team will review it.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Reason</label>
+                      <select
+                        value={reportReason}
+                        onChange={(e) => setReportReason(e.target.value)}
+                        className="w-full border rounded-md px-3 py-2 text-sm"
+                      >
+                        <option value="">Select a reason</option>
+                        {REPORT_REASONS.map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        Details (optional)
+                      </label>
+                      <textarea
+                        value={reportDetails}
+                        onChange={(e) => setReportDetails(e.target.value)}
+                        rows={3}
+                        className="w-full border rounded-md px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        Your email (optional)
+                      </label>
+                      <input
+                        type="email"
+                        value={reportEmail}
+                        onChange={(e) => setReportEmail(e.target.value)}
+                        className="w-full border rounded-md px-3 py-2 text-sm"
+                      />
+                    </div>
+
+                    {reportError && <p className="text-red-600 text-sm">{reportError}</p>}
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSubmitReport}
+                        disabled={reportSending}
+                        className="flex-1 bg-red-600 text-white font-bold text-sm py-2 disabled:opacity-50"
+                      >
+                        {reportSending ? 'Submitting...' : 'Submit report'}
+                      </button>
+                      <button
+                        onClick={() => setShowReportForm(false)}
+                        className="px-4 py-2 border text-sm"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
