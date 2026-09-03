@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { Flag } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
@@ -43,16 +43,15 @@ const REPORT_REASONS = [
 
 export default function ListingDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const listingId = params?.id as string
 
   const [listing, setListing] = useState<ListingDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [activePhoto, setActivePhoto] = useState(0)
   const [canEdit, setCanEdit] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
 
-  const [senderName, setSenderName] = useState('')
-  const [senderEmail, setSenderEmail] = useState('')
-  const [senderCountry, setSenderCountry] = useState('')
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
@@ -91,33 +90,63 @@ export default function ListingDetailPage() {
       setLoading(false)
 
       const { data: { user } } = await supabase.auth.getUser()
-      if (user && data) {
-        const isOwner = (data as unknown as ListingDetail).breeder_id === user.id
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-        setCanEdit(isOwner || profile?.role === 'admin')
+      if (user) {
+        setUserId(user.id)
+        if (data) {
+          const isOwner = (data as unknown as ListingDetail).breeder_id === user.id
+          const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+          setCanEdit(isOwner || profile?.role === 'admin')
+        }
       }
     }
     load()
   }, [listingId])
 
-  const handleSendInquiry = async () => {
+  const handleSendMessage = async () => {
     if (!listing) return
     setSendError('')
 
-    if (!senderName || !senderEmail || !message) {
-      setSendError('Please fill in your name, email, and a message.')
+    if (!userId) {
+      router.push('/login')
+      return
+    }
+
+    if (!message.trim()) {
+      setSendError('Please write a message.')
       return
     }
 
     setSending(true)
 
-    const { error } = await supabase.from('inquiries').insert({
-      listing_id: listing.id,
-      breeder_id: listing.breeder_id,
-      sender_name: senderName,
-      sender_email: senderEmail,
-      sender_country: senderCountry || null,
-      message,
+    const { data: existing } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('buyer_id', userId)
+      .eq('breeder_id', listing.breeder_id)
+      .eq('listing_id', listing.id)
+      .maybeSingle()
+
+    let conversationId = existing?.id
+
+    if (!conversationId) {
+      const { data: newConvo, error: convoError } = await supabase
+        .from('conversations')
+        .insert({ buyer_id: userId, breeder_id: listing.breeder_id, listing_id: listing.id })
+        .select('id')
+        .single()
+
+      if (convoError || !newConvo) {
+        setSendError(convoError?.message ?? 'Could not start conversation.')
+        setSending(false)
+        return
+      }
+      conversationId = newConvo.id
+    }
+
+    const { error } = await supabase.from('messages').insert({
+      conversation_id: conversationId,
+      sender_id: userId,
+      body: message.trim(),
     })
 
     if (error) {
@@ -126,8 +155,14 @@ export default function ListingDetailPage() {
       return
     }
 
+    await supabase
+      .from('conversations')
+      .update({ last_message_at: new Date().toISOString() })
+      .eq('id', conversationId)
+
     setSent(true)
     setSending(false)
+    setTimeout(() => router.push(`/messages/${conversationId}`), 800)
   }
 
   const handleSubmitReport = async () => {
@@ -178,12 +213,12 @@ export default function ListingDetailPage() {
   }
 
   const sortedPhotos = [...(listing.photos ?? [])].sort((a, b) => a.sort_order - b.sort_order)
+  const isOwnListing = userId === listing.breeder_id
 
   return (
     <>
       <Header />
       <div className="max-w-5xl mx-auto p-6 grid md:grid-cols-2 gap-8">
-        {/* Left: photos + details */}
         <div>
           <div className="aspect-square bg-gray-100 rounded-md overflow-hidden mb-3">
             {sortedPhotos[activePhoto] ? (
@@ -226,7 +261,9 @@ export default function ListingDetailPage() {
               </a>
             )}
           </div>
-          <p className="text-gray-500 mb-4">{listing.breeder?.kennel_name ?? 'Unknown kennel'}</p>
+          <a href={`/breeder/${listing.breeder_id}`} className="text-gray-500 mb-4 hover:underline inline-block">
+            {listing.breeder?.kennel_name ?? 'Unknown kennel'}
+          </a>
 
           <p className="text-2xl font-bold text-pd-black mb-6">
             {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
@@ -286,47 +323,27 @@ export default function ListingDetailPage() {
           )}
         </div>
 
-        {/* Right: contact breeder form */}
         <div>
-          <div className="border rounded-md p-5 sticky top-6">
-            <h2 className="font-bold text-lg mb-4">Contact the breeder</h2>
+          {!isOwnListing && (
+            <div className="border rounded-md p-5 sticky top-6">
+              <h2 className="font-bold text-lg mb-4">Message the breeder</h2>
 
-            {sent ? (
-              <p className="text-green-700 text-sm">
-                Your message has been sent to the breeder. They will contact you directly at the email
-                you provided.
-              </p>
-            ) : (
-              <div className="space-y-3">
+              {sent ? (
+                <p className="text-green-700 text-sm">Message sent! Redirecting to your conversation...</p>
+              ) : !userId ? (
                 <div>
-                  <label className="block text-sm font-medium mb-1">Your name</label>
-                  <input
-                    type="text"
-                    value={senderName}
-                    onChange={(e) => setSenderName(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                  />
+                  <p className="text-sm text-gray-600 mb-3">
+                    Sign in to message this breeder directly.
+                  </p>
+                  <a
+                    href="/login"
+                    className="inline-block bg-pd-black text-white font-bold text-sm py-3 px-6"
+                  >
+                    Sign in
+                  </a>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Your email</label>
-                  <input
-                    type="email"
-                    value={senderEmail}
-                    onChange={(e) => setSenderEmail(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Your country (optional)</label>
-                  <input
-                    type="text"
-                    value={senderCountry}
-                    onChange={(e) => setSenderCountry(e.target.value)}
-                    className="w-full border rounded-md px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Message</label>
+              ) : (
+                <div className="space-y-3">
                   <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
@@ -334,20 +351,20 @@ export default function ListingDetailPage() {
                     placeholder="I'm interested in this listing, could you tell me more about..."
                     className="w-full border rounded-md px-3 py-2 text-sm"
                   />
+
+                  {sendError && <p className="text-red-600 text-sm">{sendError}</p>}
+
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={sending}
+                    className="w-full bg-pd-black text-white font-bold text-sm py-3 disabled:opacity-50"
+                  >
+                    {sending ? 'Sending...' : 'Send message'}
+                  </button>
                 </div>
-
-                {sendError && <p className="text-red-600 text-sm">{sendError}</p>}
-
-                <button
-                  onClick={handleSendInquiry}
-                  disabled={sending}
-                  className="w-full bg-pd-black text-white font-bold text-sm py-3 disabled:opacity-50"
-                >
-                  {sending ? 'Sending...' : 'Send message'}
-                </button>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           <div className="mt-4">
             {!showReportForm ? (
