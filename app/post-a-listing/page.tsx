@@ -248,6 +248,8 @@ export default function PostAListingPage() {
     setter((prev) => ({ ...prev, [code]: value }))
   }
 
+  const [showCuteMessage, setShowCuteMessage] = useState(false)
+
   const handlePhotoChange = (index: number, file: File | null) => {
     const newPhotos = [...photos]
     newPhotos[index] = file
@@ -260,6 +262,11 @@ export default function PostAListingPage() {
       newPreviews[index] = null
     }
     setPhotoPreviews(newPreviews)
+
+    if (index === 0 && file) {
+      setShowCuteMessage(true)
+      setTimeout(() => setShowCuteMessage(false), 3000)
+    }
   }
 
   const validateStep = (): string | null => {
@@ -530,6 +537,7 @@ export default function PostAListingPage() {
           sort_order: i,
         })
       }
+      sessionStorage.setItem('poodles-just-published', 'true')
       router.push('/search')
     } catch (err) {
       setError('Something went wrong. Please try again.')
@@ -982,6 +990,9 @@ export default function PostAListingPage() {
         {step === 5 && (
           <div className="space-y-4">
             <p className="text-sm text-gray-500">Upload up to 3 photos. At least 1 photo is required.</p>
+            {showCuteMessage && (
+              <p className="text-pd-gold font-semibold text-sm">Aww, so cute! 😍</p>
+            )}
             {[0, 1, 2].map((i) => (
               <div key={i} className="border rounded-md p-4">
                 <label className="block text-sm font-medium mb-2">Photo {i + 1}</label>
