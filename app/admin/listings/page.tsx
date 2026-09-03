@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
 
@@ -151,7 +152,6 @@ export default function AdminListingsPage() {
     if (sortBy === 'age') {
       return ageInMonths(a.date_of_birth) - ageInMonths(b.date_of_birth)
     }
-    // newest (default)
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   })
 
@@ -244,6 +244,12 @@ export default function AdminListingsPage() {
                         </button>
                       </>
                     )}
+                    <Link
+                      href={`/admin/listings/${listing.id}/edit`}
+                      className="px-3 py-1 border border-blue-600 text-blue-600 text-sm rounded-md"
+                    >
+                      Edit
+                    </Link>
                     <button
                       onClick={() => handleDelete(listing.id)}
                       disabled={deletingId === listing.id}
