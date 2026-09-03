@@ -71,12 +71,24 @@ export default function Header() {
         setDisplayName(profile?.display_name ?? "Account");
         setRole(profile?.role ?? null);
 
-        const { count } = await supabase
-          .from("inquiries")
-          .select("id", { count: "exact", head: true })
-          .eq("breeder_id", user.id)
-          .eq("read", false);
-        setUnreadCount(count ?? 0);
+        const { data: convos } = await supabase
+          .from("conversations")
+          .select("id")
+          .or(`buyer_id.eq.${user.id},breeder_id.eq.${user.id}`);
+
+        const convoIds = (convos ?? []).map((c) => c.id);
+
+        if (convoIds.length > 0) {
+          const { count } = await supabase
+            .from("messages")
+            .select("id", { count: "exact", head: true })
+            .in("conversation_id", convoIds)
+            .eq("read", false)
+            .neq("sender_id", user.id);
+          setUnreadCount(count ?? 0);
+        } else {
+          setUnreadCount(0);
+        }
 
         if (profile?.role === "admin" || profile?.role === "moderator") {
           const { count: pendingListings } = await supabase
@@ -218,7 +230,7 @@ export default function Header() {
 
             {loading ? null : displayName ? (
               <>
-                <Link href="/inquiries" aria-label="Inquiries" className="relative">
+                <Link href="/messages" aria-label="Messages" className="relative">
                   <MessageSquare size={18} />
                   {unreadCount > 0 && (
                     <span className="absolute -top-2 -right-2 bg-pd-gold text-pd-black text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
