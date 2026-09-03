@@ -45,7 +45,7 @@ export default function Hero() {
         </div>
         <div className="relative aspect-[4/3] w-full rounded-md overflow-hidden">
           <img
-            src="/hero-photo.jpg"
+            src="/file_00000000f3dc81f4be979257daba437b.png"
             alt="Five Poodles of different colours sitting together in a garden"
             className="w-full h-full object-cover"
           />
