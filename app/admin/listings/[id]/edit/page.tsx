@@ -148,7 +148,7 @@ export default function AdminEditListingPage() {
         .single()
 
       if (listingError || !listing) {
-        setError('Listing not found.')
+        setError(`Listing not found. Debug: ${listingError?.message ?? 'no listing returned'} (id: ${listingId})`)
         setLoading(false)
         return
       }
