@@ -90,12 +90,15 @@ type Country = { code: string; name: string }
 
 type AccessState = 'checking' | 'not_logged_in' | 'not_breeder' | 'allowed'
 
+const todayStr = () => new Date().toISOString().slice(0, 10)
+
 export default function PostAListingPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [access, setAccess] = useState<AccessState>('checking')
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   const [colours, setColours] = useState<Colour[]>([])
   const [sizes, setSizes] = useState<Size[]>([])
@@ -153,6 +156,8 @@ export default function PostAListingPage() {
         .select('role')
         .eq('id', user.id)
         .single()
+
+      setUserRole(profile?.role ?? null)
 
       if (profile?.role === 'breeder' || profile?.role === 'admin') {
         setAccess('allowed')
@@ -259,6 +264,12 @@ export default function PostAListingPage() {
       if (!form.listing_type) return 'Please select a listing type.'
       if (!form.sex) return 'Please select the sex.'
       if (!form.date_of_birth) return 'Please enter the date of birth.'
+      if (form.date_of_birth > todayStr()) {
+        return "This puppy hasn't been born yet — we're not a time machine. Please check the date of birth."
+      }
+      if (form.ready_from && form.ready_from < form.date_of_birth) {
+        return "The puppy can't be ready for its new home before it's even born. Please check the 'Ready from' date."
+      }
     }
     if (step === 1) {
       if (!form.size_code) return 'Please select a size.'
@@ -341,6 +352,12 @@ export default function PostAListingPage() {
 
   const validate = (): string | null => {
     if (photos.every((p) => p === null)) return 'Please upload at least 1 photo.'
+    if (form.date_of_birth > todayStr()) {
+      return "This puppy hasn't been born yet — we're not a time machine. Please check the date of birth."
+    }
+    if (form.ready_from && form.ready_from < form.date_of_birth) {
+      return "The puppy can't be ready for its new home before it's even born. Please check the 'Ready from' date."
+    }
     return null
   }
 
@@ -360,6 +377,21 @@ export default function PostAListingPage() {
         setError('You must be logged in to post a listing.')
         setSaving(false)
         return
+      }
+
+      if (userRole === 'admin') {
+        const { data: existingBreederProfile } = await supabase
+          .from('breeder_profiles')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (!existingBreederProfile) {
+          await supabase.from('breeder_profiles').insert({
+            id: user.id,
+            kennel_name: form.kennel_registration_name || 'Admin Listing',
+          })
+        }
       }
 
       const sizeMatch = sizes.find((s) => s.code === form.size_code)
@@ -622,6 +654,7 @@ export default function PostAListingPage() {
               <input
                 type="date"
                 value={form.date_of_birth}
+                max={todayStr()}
                 onChange={(e) => update('date_of_birth', e.target.value)}
                 className="w-full border rounded-md px-3 py-2"
               />
@@ -632,6 +665,7 @@ export default function PostAListingPage() {
               <input
                 type="date"
                 value={form.ready_from}
+                min={form.date_of_birth || undefined}
                 onChange={(e) => update('ready_from', e.target.value)}
                 className="w-full border rounded-md px-3 py-2"
               />
