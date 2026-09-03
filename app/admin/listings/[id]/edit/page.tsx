@@ -63,6 +63,9 @@ type EditForm = {
   status: string
 }
 
+const inputClass = "w-full border border-pd-black/15 rounded-md px-3 py-2 bg-white"
+const labelClass = "block text-sm font-medium mb-1 text-pd-black"
+
 export default function AdminEditListingPage() {
   const router = useRouter()
   const params = useParams()
@@ -310,7 +313,9 @@ export default function AdminEditListingPage() {
     return (
       <>
         <Header />
-        <div className="max-w-2xl mx-auto mt-16 p-6 text-gray-500">Loading...</div>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-2xl mx-auto pt-16 p-6 text-pd-gray">Loading...</div>
+        </div>
       </>
     )
   }
@@ -319,8 +324,10 @@ export default function AdminEditListingPage() {
     return (
       <>
         <Header />
-        <div className="max-w-2xl mx-auto mt-16 p-6">
-          <p className="text-red-600">You do not have access to this page.</p>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-2xl mx-auto pt-16 p-6">
+            <p className="text-red-600">You do not have access to this page.</p>
+          </div>
         </div>
       </>
     )
@@ -329,311 +336,315 @@ export default function AdminEditListingPage() {
   return (
     <>
       <Header />
-      <div className="max-w-2xl mx-auto mt-10 p-6 mb-16">
-        <h1 className="text-2xl font-bold mb-6">Edit Listing</h1>
-
-        {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
-        {success && <p className="text-green-600 text-sm mb-4">Saved successfully.</p>}
-
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium mb-1">Status</label>
-            <select
-              value={form.status}
-              onChange={(e) => update('status', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            >
-              <option value="PENDING">Pending</option>
-              <option value="ACTIVE">Active</option>
-              <option value="REJECTED">Rejected</option>
-              <option value="SOLD">Sold</option>
-              <option value="EXPIRED">Expired</option>
-            </select>
+      <div className="bg-pd-cream min-h-screen">
+        <div className="max-w-2xl mx-auto pt-10 p-6 pb-16">
+          <div className="bg-pd-black text-white rounded-md p-4 mb-6">
+            <h1 className="text-xl font-bold">Edit Listing</h1>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Listing type</label>
-            <select
-              value={form.listing_type}
-              onChange={(e) => update('listing_type', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            >
-              <option value="PUPPY">Puppy</option>
-              <option value="YOUNG_DOG">Young dog</option>
-              <option value="ADULT_DOG">Adult dog</option>
-            </select>
-          </div>
+          {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+          {success && <p className="text-green-600 text-sm mb-4">Saved successfully.</p>}
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Sex</label>
-            <select
-              value={form.sex}
-              onChange={(e) => update('sex', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            >
-              <option value="">Select</option>
-              <option value="MALE">Male</option>
-              <option value="FEMALE">Female</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Title</label>
-            <input
-              type="text"
-              value={form.title}
-              onChange={(e) => update('title', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <textarea
-              value={form.description}
-              onChange={(e) => update('description', e.target.value)}
-              rows={4}
-              className="w-full border rounded-md px-3 py-2"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white border border-pd-black/10 rounded-md p-5 space-y-6">
             <div>
-              <label className="block text-sm font-medium mb-1">Date of birth</label>
-              <input
-                type="date"
-                value={form.date_of_birth}
-                onChange={(e) => update('date_of_birth', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Ready from</label>
-              <input
-                type="date"
-                value={form.ready_from}
-                onChange={(e) => update('ready_from', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Males available</label>
-              <input
-                type="number"
-                min="0"
-                value={form.males_available}
-                onChange={(e) => update('males_available', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Females available</label>
-              <input
-                type="number"
-                min="0"
-                value={form.females_available}
-                onChange={(e) => update('females_available', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Size</label>
-            <select
-              value={form.size_code}
-              onChange={(e) => update('size_code', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            >
-              <option value="">Select a size</option>
-              {SIZE_OPTIONS.map((s) => (
-                <option key={s.code} value={s.code}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Colour</label>
-            <select
-              value={form.colour_code}
-              onChange={(e) => update('colour_code', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            >
-              <option value="">Select a colour</option>
-              {colours.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={form.has_pedigree} onChange={() => toggleBoolean('has_pedigree')} />
-            Has pedigree
-          </label>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Kennel name</label>
-            <input
-              type="text"
-              value={form.kennel_registration_name}
-              onChange={(e) => update('kennel_registration_name', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Registration number</label>
-            <input
-              type="text"
-              value={form.registration_number}
-              onChange={(e) => update('registration_number', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={form.microchipped} onChange={() => toggleBoolean('microchipped')} />
-              Microchipped
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={form.vaccinated} onChange={() => toggleBoolean('vaccinated')} />
-              Vaccinated
-            </label>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2">
-              <label className="block text-sm font-medium mb-1">Price</label>
-              <input
-                type="number"
-                min="0"
-                value={form.price}
-                onChange={(e) => update('price', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Currency</label>
+              <label className={labelClass}>Status</label>
               <select
-                value={form.currency_code}
-                onChange={(e) => update('currency_code', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
+                value={form.status}
+                onChange={(e) => update('status', e.target.value)}
+                className={inputClass}
               >
-                {currencies.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.code} ({c.symbol})
+                <option value="PENDING">Pending</option>
+                <option value="ACTIVE">Active</option>
+                <option value="REJECTED">Rejected</option>
+                <option value="SOLD">Sold</option>
+                <option value="EXPIRED">Expired</option>
+              </select>
+            </div>
+
+            <div>
+              <label className={labelClass}>Listing type</label>
+              <select
+                value={form.listing_type}
+                onChange={(e) => update('listing_type', e.target.value)}
+                className={inputClass}
+              >
+                <option value="PUPPY">Puppy</option>
+                <option value="YOUNG_DOG">Young dog</option>
+                <option value="ADULT_DOG">Adult dog</option>
+              </select>
+            </div>
+
+            <div>
+              <label className={labelClass}>Sex</label>
+              <select
+                value={form.sex}
+                onChange={(e) => update('sex', e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Select</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+              </select>
+            </div>
+
+            <div>
+              <label className={labelClass}>Title</label>
+              <input
+                type="text"
+                value={form.title}
+                onChange={(e) => update('title', e.target.value)}
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Description</label>
+              <textarea
+                value={form.description}
+                onChange={(e) => update('description', e.target.value)}
+                rows={4}
+                className={inputClass}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Date of birth</label>
+                <input
+                  type="date"
+                  value={form.date_of_birth}
+                  onChange={(e) => update('date_of_birth', e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Ready from</label>
+                <input
+                  type="date"
+                  value={form.ready_from}
+                  onChange={(e) => update('ready_from', e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Males available</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.males_available}
+                  onChange={(e) => update('males_available', e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Females available</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.females_available}
+                  onChange={(e) => update('females_available', e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClass}>Size</label>
+              <select
+                value={form.size_code}
+                onChange={(e) => update('size_code', e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Select a size</option>
+                {SIZE_OPTIONS.map((s) => (
+                  <option key={s.code} value={s.code}>
+                    {s.label}
                   </option>
                 ))}
               </select>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Country</label>
-            <select
-              value={form.country_code}
-              onChange={(e) => update('country_code', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            >
-              <option value="">Select a country</option>
-              {countries.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Willing to send to</label>
-            <div className="space-y-2">
-              {SELL_SCOPE_OPTIONS.map((s) => (
-                <label key={s.code} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={form.sell_scope.includes(s.code)}
-                    onChange={() => toggleListValue('sell_scope', s.code)}
-                  />
-                  {s.label}
-                </label>
-              ))}
+            <div>
+              <label className={labelClass}>Colour</label>
+              <select
+                value={form.colour_code}
+                onChange={(e) => update('colour_code', e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Select a colour</option>
+                {colours.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Transport options</label>
-            <div className="space-y-2">
-              {TRANSPORT_OPTIONS.map((t) => (
-                <label key={t.code} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={form.transport_options.includes(t.code)}
-                    onChange={() => toggleListValue('transport_options', t.code)}
-                  />
-                  {t.label}
-                </label>
-              ))}
-            </div>
-          </div>
+            <label className="flex items-center gap-2 text-pd-black">
+              <input type="checkbox" checked={form.has_pedigree} onChange={() => toggleBoolean('has_pedigree')} />
+              Has pedigree
+            </label>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">Photos</label>
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {existingPhotos.map((photo) => (
-                <div key={photo.id} className="relative">
-                  <img src={photo.url} alt="Listing" className="w-full h-24 object-cover rounded-md" />
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteExistingPhoto(photo)}
-                    className="absolute top-1 right-1 bg-red-600 text-white text-xs w-5 h-5 rounded-full"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-            <p className="text-sm text-gray-500 mb-2">Add more photos:</p>
-            {[0, 1, 2].map((i) => (
+            <div>
+              <label className={labelClass}>Kennel name</label>
               <input
-                key={i}
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleNewPhotoChange(i, e.target.files?.[0] ?? null)}
-                className="w-full text-sm mb-2"
+                type="text"
+                value={form.kennel_registration_name}
+                onChange={(e) => update('kennel_registration_name', e.target.value)}
+                className={inputClass}
               />
-            ))}
-          </div>
+            </div>
 
-          <div className="flex gap-3 pt-4 flex-wrap">
-            <button
-              onClick={handleSave}
-              disabled={saving || deleting}
-              className="px-6 py-2 bg-black text-white rounded-md disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : 'Save changes'}
-            </button>
-            <button
-              onClick={() => router.push('/admin/listings')}
-              disabled={saving || deleting}
-              className="px-6 py-2 border rounded-md disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={saving || deleting}
-              className="px-6 py-2 bg-red-600 text-white rounded-md disabled:opacity-50 ml-auto"
-            >
-              {deleting ? 'Deleting...' : 'Delete listing'}
-            </button>
+            <div>
+              <label className={labelClass}>Registration number</label>
+              <input
+                type="text"
+                value={form.registration_number}
+                onChange={(e) => update('registration_number', e.target.value)}
+                className={inputClass}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-pd-black">
+                <input type="checkbox" checked={form.microchipped} onChange={() => toggleBoolean('microchipped')} />
+                Microchipped
+              </label>
+              <label className="flex items-center gap-2 text-pd-black">
+                <input type="checkbox" checked={form.vaccinated} onChange={() => toggleBoolean('vaccinated')} />
+                Vaccinated
+              </label>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2">
+                <label className={labelClass}>Price</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.price}
+                  onChange={(e) => update('price', e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Currency</label>
+                <select
+                  value={form.currency_code}
+                  onChange={(e) => update('currency_code', e.target.value)}
+                  className={inputClass}
+                >
+                  {currencies.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} ({c.symbol})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClass}>Country</label>
+              <select
+                value={form.country_code}
+                onChange={(e) => update('country_code', e.target.value)}
+                className={inputClass}
+              >
+                <option value="">Select a country</option>
+                {countries.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className={labelClass}>Willing to send to</label>
+              <div className="space-y-2">
+                {SELL_SCOPE_OPTIONS.map((s) => (
+                  <label key={s.code} className="flex items-center gap-2 text-pd-black">
+                    <input
+                      type="checkbox"
+                      checked={form.sell_scope.includes(s.code)}
+                      onChange={() => toggleListValue('sell_scope', s.code)}
+                    />
+                    {s.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClass}>Transport options</label>
+              <div className="space-y-2">
+                {TRANSPORT_OPTIONS.map((t) => (
+                  <label key={t.code} className="flex items-center gap-2 text-pd-black">
+                    <input
+                      type="checkbox"
+                      checked={form.transport_options.includes(t.code)}
+                      onChange={() => toggleListValue('transport_options', t.code)}
+                    />
+                    {t.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 text-pd-black">Photos</label>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {existingPhotos.map((photo) => (
+                  <div key={photo.id} className="relative">
+                    <img src={photo.url} alt="Listing" className="w-full h-24 object-cover rounded-md" />
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteExistingPhoto(photo)}
+                      className="absolute top-1 right-1 bg-red-600 text-white text-xs w-5 h-5 rounded-full"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-pd-gray mb-2">Add more photos:</p>
+              {[0, 1, 2].map((i) => (
+                <input
+                  key={i}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleNewPhotoChange(i, e.target.files?.[0] ?? null)}
+                  className="w-full text-sm mb-2"
+                />
+              ))}
+            </div>
+
+            <div className="flex gap-3 pt-4 flex-wrap">
+              <button
+                onClick={handleSave}
+                disabled={saving || deleting}
+                className="px-6 py-2 bg-pd-black text-pd-gold rounded-md disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : 'Save changes'}
+              </button>
+              <button
+                onClick={() => router.push('/admin/listings')}
+                disabled={saving || deleting}
+                className="px-6 py-2 border border-pd-black/15 rounded-md disabled:opacity-50 bg-white text-pd-black"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={saving || deleting}
+                className="px-6 py-2 bg-red-600 text-white rounded-md disabled:opacity-50 ml-auto"
+              >
+                {deleting ? 'Deleting...' : 'Delete listing'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
