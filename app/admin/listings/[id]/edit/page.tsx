@@ -52,7 +52,6 @@ type EditForm = {
   has_pedigree: boolean
   kennel_registration_name: string
   registration_number: string
-  parent_titles: string
   microchipped: boolean
   vaccinated: boolean
   price: string
@@ -95,7 +94,6 @@ export default function AdminEditListingPage() {
     has_pedigree: false,
     kennel_registration_name: '',
     registration_number: '',
-    parent_titles: '',
     microchipped: false,
     vaccinated: false,
     price: '',
@@ -139,7 +137,7 @@ export default function AdminEditListingPage() {
         .select(
           `listing_type, title, description, sex, date_of_birth, ready_from,
            males_available, females_available, has_pedigree, kennel_registration_name,
-           registration_number, parent_titles, microchipped, vaccinated, price,
+           registration_number, microchipped, vaccinated, price,
            currency_code, country_code, sell_scope, transport_options, status,
            size:poodle_sizes(code), colour:poodle_colours(code),
            photos:listing_photos(id, url, sort_order)`
@@ -170,7 +168,6 @@ export default function AdminEditListingPage() {
         has_pedigree: listing.has_pedigree ?? false,
         kennel_registration_name: listing.kennel_registration_name ?? '',
         registration_number: listing.registration_number ?? '',
-        parent_titles: listing.parent_titles ?? '',
         microchipped: listing.microchipped ?? false,
         vaccinated: listing.vaccinated ?? false,
         price: listing.price?.toString() ?? '',
@@ -239,7 +236,6 @@ export default function AdminEditListingPage() {
         has_pedigree: form.has_pedigree,
         kennel_registration_name: form.kennel_registration_name || null,
         registration_number: form.registration_number || null,
-        parent_titles: form.parent_titles || null,
         microchipped: form.microchipped,
         vaccinated: form.vaccinated,
         price: form.price ? Number(form.price) : null,
@@ -472,16 +468,6 @@ export default function AdminEditListingPage() {
               type="text"
               value={form.registration_number}
               onChange={(e) => update('registration_number', e.target.value)}
-              className="w-full border rounded-md px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Parent titles</label>
-            <input
-              type="text"
-              value={form.parent_titles}
-              onChange={(e) => update('parent_titles', e.target.value)}
               className="w-full border rounded-md px-3 py-2"
             />
           </div>
