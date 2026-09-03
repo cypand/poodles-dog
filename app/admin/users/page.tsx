@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Crown, ShieldCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
 
@@ -104,7 +105,7 @@ export default function AdminUsersPage() {
     setActingId(null)
   }
 
-  const handleSetRole = async (userId: string, displayName: string | null, newRole: 'admin' | 'moderator') => {
+  const handleSetRole = async (userId: string, displayName: string | null, newRole: string) => {
     if (!confirm(`Set ${displayName ?? 'this user'}'s role to ${newRole}?`)) return
 
     setActingId(userId)
@@ -275,11 +276,14 @@ export default function AdminUsersPage() {
             const isProtected = u.email === PROTECTED_ADMIN_EMAIL
             const isCurrentlySuspended = u.suspended_until && new Date(u.suspended_until) > new Date()
             const canModerate = !isProtected && u.role !== 'admin'
+            const canChangeRole = isAdmin && !isProtected
 
             return (
               <div key={u.id} className="border rounded-md p-4 flex items-center justify-between gap-4 flex-wrap">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
+                    {u.role === 'admin' && <Crown size={16} className="text-pd-gold" />}
+                    {u.role === 'moderator' && <ShieldCheck size={16} className="text-blue-600" />}
                     <span className="font-semibold">{u.display_name ?? 'Unnamed'}</span>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700 uppercase">
                       {u.role}
@@ -319,7 +323,7 @@ export default function AdminUsersPage() {
                         {actingId === u.id ? 'Updating...' : u.banned ? 'Unban' : 'Ban'}
                       </button>
                     )}
-                    {isAdmin && u.role !== 'admin' && (
+                    {canChangeRole && u.role !== 'admin' && (
                       <button
                         onClick={() => handleSetRole(u.id, u.display_name, 'admin')}
                         disabled={actingId === u.id}
@@ -328,13 +332,22 @@ export default function AdminUsersPage() {
                         Admin
                       </button>
                     )}
-                    {isAdmin && u.role !== 'moderator' && (
+                    {canChangeRole && u.role !== 'moderator' && (
                       <button
                         onClick={() => handleSetRole(u.id, u.display_name, 'moderator')}
                         disabled={actingId === u.id}
                         className="text-xs font-bold px-3 py-1.5 rounded border border-blue-600 text-blue-700 hover:bg-blue-50 disabled:opacity-50"
                       >
                         Moderator
+                      </button>
+                    )}
+                    {canChangeRole && (u.role === 'admin' || u.role === 'moderator') && (
+                      <button
+                        onClick={() => handleSetRole(u.id, u.display_name, 'buyer')}
+                        disabled={actingId === u.id}
+                        className="text-xs font-bold px-3 py-1.5 rounded border border-gray-500 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        Remove role
                       </button>
                     )}
                     {isAdmin && u.role !== 'admin' && !isProtected && (
@@ -392,4 +405,4 @@ export default function AdminUsersPage() {
       </div>
     </>
   )
-} 
+}
