@@ -43,6 +43,7 @@ export default function Header() {
   const [pendingListingsCount, setPendingListingsCount] = useState(0);
   const [pendingReportsCount, setPendingReportsCount] = useState(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [pendingVerificationsCount, setPendingVerificationsCount] = useState(0);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [colours, setColours] = useState<Colour[]>([]);
@@ -108,6 +109,12 @@ export default function Header() {
             .select("id", { count: "exact", head: true })
             .eq("status", "PENDING");
           setPendingRequestsCount(pendingRequests ?? 0);
+
+          const { count: pendingVerifications } = await supabase
+            .from("breeder_profiles")
+            .select("id", { count: "exact", head: true })
+            .eq("verification_status", "pending");
+          setPendingVerificationsCount(pendingVerifications ?? 0);
         }
       } else {
         setDisplayName(null);
@@ -116,6 +123,7 @@ export default function Header() {
         setPendingListingsCount(0);
         setPendingReportsCount(0);
         setPendingRequestsCount(0);
+        setPendingVerificationsCount(0);
       }
       setLoading(false);
     };
@@ -253,6 +261,17 @@ export default function Header() {
                       {pendingListingsCount > 0 && (
                         <span className="absolute -top-2 -right-2 bg-pd-gold text-pd-black text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                           {pendingListingsCount > 9 ? '9+' : pendingListingsCount}
+                        </span>
+                      )}
+                    </Link>
+                    <Link
+                      href="/admin/verifications"
+                      className="relative border border-white/30 px-3 py-1 text-xs font-bold hover:border-pd-gold hover:text-pd-gold"
+                    >
+                      VERIFY
+                      {pendingVerificationsCount > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                          {pendingVerificationsCount > 9 ? '9+' : pendingVerificationsCount}
                         </span>
                       )}
                     </Link>
