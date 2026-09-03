@@ -92,6 +92,9 @@ type AccessState = 'checking' | 'not_logged_in' | 'not_breeder' | 'allowed'
 
 const todayStr = () => new Date().toISOString().slice(0, 10)
 
+const FUTURE_DOB_MESSAGE = "That date hasn't happened yet — neither has this puppy."
+const READY_BEFORE_BIRTH_MESSAGE = "A puppy can't leave home before it's even born. Please pick a 'ready from' date after the birth date."
+
 export default function PostAListingPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
@@ -265,10 +268,10 @@ export default function PostAListingPage() {
       if (!form.sex) return 'Please select the sex.'
       if (!form.date_of_birth) return 'Please enter the date of birth.'
       if (form.date_of_birth > todayStr()) {
-        return "This puppy hasn't been born yet — we're not a time machine. Please check the date of birth."
+        return FUTURE_DOB_MESSAGE
       }
       if (form.ready_from && form.ready_from < form.date_of_birth) {
-        return "The puppy can't be ready for its new home before it's even born. Please check the 'Ready from' date."
+        return READY_BEFORE_BIRTH_MESSAGE
       }
     }
     if (step === 1) {
@@ -353,10 +356,10 @@ export default function PostAListingPage() {
   const validate = (): string | null => {
     if (photos.every((p) => p === null)) return 'Please upload at least 1 photo.'
     if (form.date_of_birth > todayStr()) {
-      return "This puppy hasn't been born yet — we're not a time machine. Please check the date of birth."
+      return FUTURE_DOB_MESSAGE
     }
     if (form.ready_from && form.ready_from < form.date_of_birth) {
-      return "The puppy can't be ready for its new home before it's even born. Please check the 'Ready from' date."
+      return READY_BEFORE_BIRTH_MESSAGE
     }
     return null
   }
