@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
 
@@ -29,6 +30,7 @@ export default function ConversationPage() {
   const [conversation, setConversation] = useState<ConversationInfo | null>(null)
   const [otherId, setOtherId] = useState<string | null>(null)
   const [otherName, setOtherName] = useState('')
+  const [otherProfileHref, setOtherProfileHref] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
@@ -62,6 +64,7 @@ export default function ConversationPage() {
       const isBuyer = convo.buyer_id === user.id
       const otherUserId = isBuyer ? convo.breeder_id : convo.buyer_id
       setOtherId(otherUserId)
+      setOtherProfileHref(isBuyer ? `/breeder/${otherUserId}` : `/user/${otherUserId}`)
 
       if (isBuyer) {
         const { data: breederProfile } = await supabase
@@ -152,7 +155,7 @@ export default function ConversationPage() {
       await supabase.from('blocked_users').delete().eq('blocker_id', userId).eq('blocked_id', otherId)
       setHasBlockedOther(false)
     } else {
-      if (!confirm(`Block ${otherName}? They will no longer be able to message you.`)) return
+      if (!confirm(`Ban ${otherName}? They will no longer be able to message you.`)) return
       await supabase.from('blocked_users').insert({ blocker_id: userId, blocked_id: otherId })
       setHasBlockedOther(true)
     }
@@ -188,7 +191,9 @@ export default function ConversationPage() {
       <div className="bg-pd-cream min-h-screen">
         <div className="max-w-2xl mx-auto p-6 flex flex-col" style={{ minHeight: '70vh' }}>
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold text-pd-black">{otherName}</h1>
+            <Link href={otherProfileHref} className="text-xl font-bold text-pd-black hover:underline">
+              {otherName}
+            </Link>
             <button
               onClick={handleToggleBlock}
               className={`text-xs font-bold px-3 py-1.5 rounded-md border bg-white ${
@@ -197,19 +202,19 @@ export default function ConversationPage() {
                   : 'border-red-600 text-red-600 hover:bg-red-50'
               }`}
             >
-              {hasBlockedOther ? 'Unblock' : 'Block'}
+              {hasBlockedOther ? 'Unban' : 'Ban Messages from this user'}
             </button>
           </div>
 
           {isBlocked && (
             <p className="text-sm text-orange-600 bg-orange-50 border border-orange-200 rounded-md p-3 mb-3">
-              This user has blocked you. You can't send new messages in this conversation.
+              This user has banned you. You can't send new messages in this conversation.
             </p>
           )}
 
           {hasBlockedOther && (
             <p className="text-sm text-pd-gray bg-white border border-pd-black/10 rounded-md p-3 mb-3">
-              You've blocked this user. Unblock them to send new messages.
+              You've banned this user. Unban them to send new messages.
             </p>
           )}
 
