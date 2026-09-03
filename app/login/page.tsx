@@ -47,13 +47,21 @@ export default function LoginPage() {
     if (signInData.user) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('banned')
+        .select('banned, suspended_until')
         .eq('id', signInData.user.id)
         .single()
 
       if (profile?.banned) {
         await supabase.auth.signOut()
         setError('Your account has been suspended. Please contact support if you believe this is a mistake.')
+        setLoading(false)
+        return
+      }
+
+      if (profile?.suspended_until && new Date(profile.suspended_until) > new Date()) {
+        await supabase.auth.signOut()
+        const until = new Date(profile.suspended_until).toLocaleString()
+        setError(`Your account is temporarily suspended until ${until}. Please contact support if you believe this is a mistake.`)
         setLoading(false)
         return
       }
