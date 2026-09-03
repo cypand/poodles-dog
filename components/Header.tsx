@@ -33,6 +33,7 @@ const REGION_OPTIONS = [
 
 type Colour = { code: string; label: string }
 type Country = { code: string; name: string }
+type PresenceUser = { id: string; name: string }
 
 export default function Header() {
   const router = useRouter();
@@ -54,6 +55,9 @@ export default function Header() {
   const [selectedColours, setSelectedColours] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [openPanel, setOpenPanel] = useState<'size' | 'sex' | 'colour' | 'location' | null>(null);
+
+  const [onlineUsers, setOnlineUsers] = useState<PresenceUser[]>([]);
+  const [todayUsers, setTodayUsers] = useState<PresenceUser[]>([]);
 
   const isAdmin = role === "admin";
   const isModerator = role === "moderator";
@@ -138,6 +142,66 @@ export default function Header() {
       listener.subscription.unsubscribe();
     };
   }, []);
+
+  // Presence ping: every logged-in user pings their own presence every 30s
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const ping = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from('user_presence').upsert({ user_id: user.id, last_seen: new Date().toISOString() });
+    };
+
+    ping();
+    interval = setInterval(ping, 30000);
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, []);
+
+  // Admin-only: load online now + logged in today
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const loadPresence = async () => {
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: presenceRows } = await supabase
+        .from('user_presence')
+        .select('user_id, last_seen')
+        .gte('last_seen', fiveMinAgo);
+
+      const onlineIds = (presenceRows ?? []).map((p) => p.user_id);
+      if (onlineIds.length > 0) {
+        const { data: onlineProfiles } = await supabase
+          .from('profiles')
+          .select('id, display_name')
+          .in('id', onlineIds);
+        setOnlineUsers((onlineProfiles ?? []).map((p) => ({ id: p.id, name: p.display_name ?? 'Unnamed' })));
+      } else {
+        setOnlineUsers([]);
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/admin-users?t=${Date.now()}`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const todayStr = new Date().toDateString();
+        const todayList = (json.users ?? [])
+          .filter((u: { last_sign_in_at: string | null }) => u.last_sign_in_at && new Date(u.last_sign_in_at).toDateString() === todayStr)
+          .map((u: { id: string; display_name: string | null }) => ({ id: u.id, name: u.display_name ?? 'Unnamed' }));
+        setTodayUsers(todayList);
+      }
+    };
+
+    loadPresence();
+    const interval = setInterval(loadPresence, 30000);
+    return () => clearInterval(interval);
+  }, [isAdmin]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -394,6 +458,17 @@ export default function Header() {
           </div>
         )}
       </header>
+
+      {isAdmin && (todayUsers.length > 0 || onlineUsers.length > 0) && (
+        <div className="bg-pd-black-2 text-white/70 text-xs px-4 py-2 flex flex-wrap gap-x-6 gap-y-1 border-b border-white/10">
+          <span>
+            🟢 Online now ({onlineUsers.length}): {onlineUsers.map((u) => u.name).join(', ') || '—'}
+          </span>
+          <span>
+            📅 Logged in today ({todayUsers.length}): {todayUsers.map((u) => u.name).join(', ') || '—'}
+          </span>
+        </div>
+      )}
     </>
   );
 }
