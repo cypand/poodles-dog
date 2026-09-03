@@ -452,9 +452,9 @@ export default function Header() {
               />
               <button
                 onClick={handleSearchSubmit}
-                className="bg-pd-black text-white font-bold text-sm h-11 flex items-center justify-center gap-2 hover:bg-pd-black-2"
+                className="border border-black text-black bg-white font-semibold text-sm h-11 flex items-center justify-center gap-2 hover:bg-gray-50"
               >
-                SEARCH <Search size={16} />
+                Search <Search size={14} />
               </button>
             </div>
           </div>
