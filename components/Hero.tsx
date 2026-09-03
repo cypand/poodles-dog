@@ -43,10 +43,12 @@ export default function Hero() {
             </a>
           </div>
         </div>
-        <div className="relative aspect-[4/3] w-full">
-          <div className="w-full h-full bg-pd-black-2 border border-white/10 flex items-center justify-center text-white/30 text-sm">
-            Hero photo placeholder
-          </div>
+        <div className="relative aspect-[4/3] w-full rounded-md overflow-hidden">
+          <img
+            src="/hero-photo.jpg"
+            alt="Five Poodles of different colours sitting together in a garden"
+            className="w-full h-full object-cover"
+          />
         </div>
       </div>
     </section>
