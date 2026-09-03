@@ -77,7 +77,9 @@ export default function AdminReportsPage() {
     return (
       <>
         <Header />
-        <div className="max-w-4xl mx-auto p-6 text-gray-500">Loading...</div>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-4xl mx-auto p-6 text-pd-gray">Loading...</div>
+        </div>
       </>
     )
   }
@@ -86,8 +88,10 @@ export default function AdminReportsPage() {
     return (
       <>
         <Header />
-        <div className="max-w-4xl mx-auto p-6">
-          <p className="text-red-600">You do not have access to this page.</p>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-4xl mx-auto p-6">
+            <p className="text-red-600">You do not have access to this page.</p>
+          </div>
         </div>
       </>
     )
@@ -96,70 +100,74 @@ export default function AdminReportsPage() {
   return (
     <>
       <Header />
-      <div className="max-w-4xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-6">Reports</h1>
+      <div className="bg-pd-cream min-h-screen">
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="bg-pd-black text-white rounded-md p-4 mb-6">
+            <h1 className="text-xl font-bold">Reports</h1>
+          </div>
 
-        {loading && <p className="text-gray-500">Loading...</p>}
+          {loading && <p className="text-pd-gray">Loading...</p>}
 
-        {!loading && reports.length === 0 && (
-          <p className="text-gray-500">No reports yet.</p>
-        )}
+          {!loading && reports.length === 0 && (
+            <p className="text-pd-gray">No reports yet.</p>
+          )}
 
-        <div className="space-y-4">
-          {reports.map((report) => (
-            <div key={report.id} className="border rounded-md p-4">
-              <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div>
-                  <p className="font-semibold">{report.reason}</p>
-                  <p className="text-sm text-gray-500">
-                    Re:{' '}
-                    <Link href={`/listing/${report.listing_id}`} className="underline">
-                      {report.listing?.title || 'Listing'}
-                    </Link>
-                  </p>
-                  {report.reporter_email && (
-                    <p className="text-sm text-gray-500">From: {report.reporter_email}</p>
-                  )}
+          <div className="space-y-4">
+            {reports.map((report) => (
+              <div key={report.id} className="bg-white border border-pd-black/10 rounded-md p-4">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <p className="font-semibold text-pd-black">{report.reason}</p>
+                    <p className="text-sm text-pd-gray">
+                      Re:{' '}
+                      <Link href={`/listing/${report.listing_id}`} className="underline">
+                        {report.listing?.title || 'Listing'}
+                      </Link>
+                    </p>
+                    {report.reporter_email && (
+                      <p className="text-sm text-pd-gray">From: {report.reporter_email}</p>
+                    )}
+                  </div>
+                  <span
+                    className={`text-xs font-bold px-2 py-1 rounded ${
+                      report.status === 'RESOLVED'
+                        ? 'bg-green-100 text-green-700'
+                        : report.status === 'DISMISSED'
+                        ? 'bg-pd-cream text-pd-gray'
+                        : 'bg-pd-gold/20 text-pd-black'
+                    }`}
+                  >
+                    {report.status}
+                  </span>
                 </div>
-                <span
-                  className={`text-xs font-bold px-2 py-1 rounded ${
-                    report.status === 'RESOLVED'
-                      ? 'bg-green-100 text-green-700'
-                      : report.status === 'DISMISSED'
-                      ? 'bg-gray-100 text-gray-600'
-                      : 'bg-pd-gold/20 text-pd-black'
-                  }`}
-                >
-                  {report.status}
-                </span>
+
+                {report.details && (
+                  <p className="text-sm mt-2 whitespace-pre-wrap text-pd-black/80">{report.details}</p>
+                )}
+
+                <p className="text-xs text-pd-gray mt-2">
+                  {new Date(report.created_at).toLocaleString()}
+                </p>
+
+                {report.status === 'PENDING' && (
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => updateStatus(report.id, report.listing?.title ?? '', 'RESOLVED')}
+                      className="text-xs font-bold border border-green-600 text-green-700 px-3 py-1.5 rounded hover:bg-green-50 bg-white"
+                    >
+                      Mark resolved
+                    </button>
+                    <button
+                      onClick={() => updateStatus(report.id, report.listing?.title ?? '', 'DISMISSED')}
+                      className="text-xs font-bold border border-pd-black/15 px-3 py-1.5 rounded hover:bg-pd-cream bg-white text-pd-black"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
               </div>
-
-              {report.details && (
-                <p className="text-sm mt-2 whitespace-pre-wrap">{report.details}</p>
-              )}
-
-              <p className="text-xs text-gray-400 mt-2">
-                {new Date(report.created_at).toLocaleString()}
-              </p>
-
-              {report.status === 'PENDING' && (
-                <div className="flex gap-2 mt-3">
-                  <button
-                    onClick={() => updateStatus(report.id, report.listing?.title ?? '', 'RESOLVED')}
-                    className="text-xs font-bold border px-3 py-1.5 hover:bg-green-50"
-                  >
-                    Mark resolved
-                  </button>
-                  <button
-                    onClick={() => updateStatus(report.id, report.listing?.title ?? '', 'DISMISSED')}
-                    className="text-xs font-bold border px-3 py-1.5 hover:bg-gray-50"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </>
