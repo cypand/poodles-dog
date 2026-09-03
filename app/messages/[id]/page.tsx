@@ -27,11 +27,14 @@ export default function ConversationPage() {
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const [conversation, setConversation] = useState<ConversationInfo | null>(null)
+  const [otherId, setOtherId] = useState<string | null>(null)
   const [otherName, setOtherName] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  const [isBlocked, setIsBlocked] = useState(false)
+  const [hasBlockedOther, setHasBlockedOther] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -57,6 +60,9 @@ export default function ConversationPage() {
       setConversation(convo)
 
       const isBuyer = convo.buyer_id === user.id
+      const otherUserId = isBuyer ? convo.breeder_id : convo.buyer_id
+      setOtherId(otherUserId)
+
       if (isBuyer) {
         const { data: breederProfile } = await supabase
           .from('breeder_profiles')
@@ -72,6 +78,22 @@ export default function ConversationPage() {
           .single()
         setOtherName(buyerProfile?.display_name || 'Buyer')
       }
+
+      const { data: blockedByMe } = await supabase
+        .from('blocked_users')
+        .select('id')
+        .eq('blocker_id', user.id)
+        .eq('blocked_id', otherUserId)
+        .maybeSingle()
+      setHasBlockedOther(!!blockedByMe)
+
+      const { data: blockedMe } = await supabase
+        .from('blocked_users')
+        .select('id')
+        .eq('blocker_id', otherUserId)
+        .eq('blocked_id', user.id)
+        .maybeSingle()
+      setIsBlocked(!!blockedMe)
 
       const { data: msgs } = await supabase
         .from('messages')
@@ -123,6 +145,19 @@ export default function ConversationPage() {
     setSending(false)
   }
 
+  const handleToggleBlock = async () => {
+    if (!userId || !otherId) return
+
+    if (hasBlockedOther) {
+      await supabase.from('blocked_users').delete().eq('blocker_id', userId).eq('blocked_id', otherId)
+      setHasBlockedOther(false)
+    } else {
+      if (!confirm(`Block ${otherName}? They will no longer be able to message you.`)) return
+      await supabase.from('blocked_users').insert({ blocker_id: userId, blocked_id: otherId })
+      setHasBlockedOther(true)
+    }
+  }
+
   if (loading) {
     return (
       <>
@@ -147,7 +182,31 @@ export default function ConversationPage() {
     <>
       <Header />
       <div className="max-w-2xl mx-auto p-6 flex flex-col" style={{ minHeight: '70vh' }}>
-        <h1 className="text-xl font-bold mb-4">{otherName}</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl font-bold">{otherName}</h1>
+          <button
+            onClick={handleToggleBlock}
+            className={`text-xs font-bold px-3 py-1.5 rounded-md border ${
+              hasBlockedOther
+                ? 'border-green-600 text-green-700 hover:bg-green-50'
+                : 'border-red-600 text-red-600 hover:bg-red-50'
+            }`}
+          >
+            {hasBlockedOther ? 'Unblock' : 'Block'}
+          </button>
+        </div>
+
+        {isBlocked && (
+          <p className="text-sm text-orange-600 bg-orange-50 border border-orange-200 rounded-md p-3 mb-3">
+            This user has blocked you. You can't send new messages in this conversation.
+          </p>
+        )}
+
+        {hasBlockedOther && (
+          <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-md p-3 mb-3">
+            You've blocked this user. Unblock them to send new messages.
+          </p>
+        )}
 
         <div className="flex-1 space-y-3 mb-4">
           {messages.map((m) => {
@@ -172,22 +231,24 @@ export default function ConversationPage() {
 
         {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
 
-        <div className="flex gap-2 sticky bottom-4 bg-white pt-2">
-          <textarea
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
-            rows={2}
-            className="flex-1 border rounded-md px-3 py-2 text-sm"
-          />
-          <button
-            onClick={handleSend}
-            disabled={sending || !newMessage.trim()}
-            className="bg-black text-white px-4 rounded-md text-sm font-bold disabled:opacity-50"
-          >
-            Send
-          </button>
-        </div>
+        {!isBlocked && !hasBlockedOther && (
+          <div className="flex gap-2 sticky bottom-4 bg-white pt-2">
+            <textarea
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type a message..."
+              rows={2}
+              className="flex-1 border rounded-md px-3 py-2 text-sm"
+            />
+            <button
+              onClick={handleSend}
+              disabled={sending || !newMessage.trim()}
+              className="bg-black text-white px-4 rounded-md text-sm font-bold disabled:opacity-50"
+            >
+              Send
+            </button>
+          </div>
+        )}
       </div>
     </>
   )
