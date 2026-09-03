@@ -20,12 +20,23 @@ type BreederProfile = {
   website_url: string | null
   instagram_url: string | null
   facebook_url: string | null
+  registry_number: string | null
+  certificate_path: string | null
+  verification_status: string
 }
 
 type Country = {
   code: string
   name: string
 }
+
+const YEARS_BREEDING_OPTIONS = [
+  { label: 'Select...', value: '' },
+  { label: '1-3 years', value: '2' },
+  { label: '3-6 years', value: '5' },
+  { label: '6-10 years', value: '8' },
+  { label: '10+ years', value: '12' },
+]
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -36,8 +47,9 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [breeder, setBreeder] = useState<BreederProfile | null>(null)
   const [countries, setCountries] = useState<Country[]>([])
+  const [certificateFile, setCertificateFile] = useState<File | null>(null)
+  const [uploadingCert, setUploadingCert] = useState(false)
 
-  // Breeder request state
   const [showRequestForm, setShowRequestForm] = useState(false)
   const [requestStatus, setRequestStatus] = useState<string | null>(null)
   const [requestSaving, setRequestSaving] = useState(false)
@@ -75,7 +87,7 @@ export default function ProfilePage() {
       if (profileData?.role === 'breeder') {
         const { data: breederData } = await supabase
           .from('breeder_profiles')
-          .select('kennel_name, about, years_breeding, website_url, instagram_url, facebook_url')
+          .select('kennel_name, about, years_breeding, website_url, instagram_url, facebook_url, registry_number, certificate_path, verification_status')
           .eq('id', user.id)
           .single()
 
@@ -133,6 +145,7 @@ export default function ProfilePage() {
           website_url: breeder.website_url,
           instagram_url: breeder.instagram_url,
           facebook_url: breeder.facebook_url,
+          registry_number: breeder.registry_number,
         })
         .eq('id', profile.id)
 
@@ -141,6 +154,32 @@ export default function ProfilePage() {
         setSaving(false)
         return
       }
+    }
+
+    if (certificateFile && profile.role === 'breeder') {
+      setUploadingCert(true)
+      const fileExt = certificateFile.name.split('.').pop()
+      const filePath = `${profile.id}/certificate-${Date.now()}.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('breeder-certificates')
+        .upload(filePath, certificateFile, { upsert: true })
+
+      if (!uploadError) {
+        await supabase
+          .from('breeder_profiles')
+          .update({
+            certificate_path: filePath,
+            verification_status: 'pending',
+            verification_submitted_at: new Date().toISOString(),
+          })
+          .eq('id', profile.id)
+
+        setBreeder((prev) =>
+          prev ? { ...prev, certificate_path: filePath, verification_status: 'pending' } : prev
+        )
+      }
+      setUploadingCert(false)
     }
 
     setSaving(false)
@@ -174,6 +213,20 @@ export default function ProfilePage() {
     setRequestSuccess(true)
     setRequestStatus('PENDING')
     setShowRequestForm(false)
+  }
+
+  const verificationBadge = () => {
+    if (!breeder) return null
+    if (breeder.verification_status === 'verified') {
+      return <span className="text-xs font-bold px-2 py-1 rounded bg-green-100 text-green-700">✓ Verified Breeder</span>
+    }
+    if (breeder.verification_status === 'pending') {
+      return <span className="text-xs font-bold px-2 py-1 rounded bg-yellow-100 text-yellow-700">Verification pending review</span>
+    }
+    if (breeder.verification_status === 'rejected') {
+      return <span className="text-xs font-bold px-2 py-1 rounded bg-red-100 text-red-700">Verification not approved — you can resubmit</span>
+    }
+    return <span className="text-xs font-bold px-2 py-1 rounded bg-gray-100 text-gray-600">Not verified</span>
   }
 
   if (loading) {
@@ -254,7 +307,10 @@ export default function ProfilePage() {
           {profile.role === 'breeder' && breeder && (
             <>
               <hr className="my-6" />
-              <h2 className="text-lg font-bold mb-2">Breeder details</h2>
+              <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                <h2 className="text-lg font-bold">Breeder details</h2>
+                {verificationBadge()}
+              </div>
 
               <div>
                 <label className="block text-sm font-medium mb-1">Kennel name</label>
@@ -267,22 +323,27 @@ export default function ProfilePage() {
               </div>
 
               <div>
+                <label className="block text-sm font-medium mb-1">Years breeding</label>
+                <select
+                  value={breeder.years_breeding?.toString() ?? ''}
+                  onChange={(e) => setBreeder({ ...breeder, years_breeding: e.target.value ? Number(e.target.value) : null })}
+                  className="w-full border rounded-md px-3 py-2"
+                >
+                  {YEARS_BREEDING_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-1">About</label>
                 <textarea
                   value={breeder.about ?? ''}
                   onChange={(e) => setBreeder({ ...breeder, about: e.target.value })}
                   className="w-full border rounded-md px-3 py-2"
                   rows={4}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Years breeding</label>
-                <input
-                  type="number"
-                  value={breeder.years_breeding ?? ''}
-                  onChange={(e) => setBreeder({ ...breeder, years_breeding: e.target.value ? Number(e.target.value) : null })}
-                  className="w-full border rounded-md px-3 py-2"
                 />
               </div>
 
@@ -315,6 +376,40 @@ export default function ProfilePage() {
                   className="w-full border rounded-md px-3 py-2"
                 />
               </div>
+
+              <hr className="my-4" />
+              <h3 className="font-bold text-sm">Get Verified</h3>
+              <p className="text-xs text-gray-500 mb-2">
+                Submit your kennel registration to earn a Verified Breeder badge. This builds trust with buyers.
+              </p>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Kennel registry number (optional)</label>
+                <input
+                  type="text"
+                  value={breeder.registry_number ?? ''}
+                  onChange={(e) => setBreeder({ ...breeder, registry_number: e.target.value })}
+                  placeholder="e.g. your national kennel club registration number"
+                  className="w-full border rounded-md px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Breeder certificate</label>
+                <p className="text-xs text-gray-500 mb-2">
+                  🔒 This document is private — it's only visible to our verification team and is
+                  never published, shown to buyers, or shared with anyone else.
+                </p>
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={(e) => setCertificateFile(e.target.files?.[0] ?? null)}
+                  className="w-full text-sm"
+                />
+                {breeder.certificate_path && (
+                  <p className="text-xs text-green-700 mt-1">A certificate is already on file.</p>
+                )}
+              </div>
             </>
           )}
 
@@ -323,10 +418,10 @@ export default function ProfilePage() {
 
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || uploadingCert}
             className="w-full bg-black text-white rounded-md py-2 font-medium disabled:opacity-50"
           >
-            {saving ? 'Saving...' : 'Save changes'}
+            {saving || uploadingCert ? 'Saving...' : 'Save changes'}
           </button>
         </form>
 
