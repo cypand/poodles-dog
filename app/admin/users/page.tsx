@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Crown, ShieldCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
+import { logAudit } from '@/lib/audit'
 import Header from '@/components/Header'
 
 const PROTECTED_ADMIN_EMAIL = 'cypand@gmail.com'
@@ -44,6 +45,7 @@ export default function AdminUsersPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<SortOption>('last_login')
   const [suspendDurations, setSuspendDurations] = useState<Record<string, number>>({})
+  const [search, setSearch] = useState('')
 
   const hasAccess = isAdmin || isModerator
 
@@ -89,7 +91,7 @@ export default function AdminUsersPage() {
     load()
   }, [router])
 
-  const toggleBan = async (userId: string, currentlyBanned: boolean) => {
+  const toggleBan = async (userId: string, displayName: string | null, currentlyBanned: boolean) => {
     setActingId(userId)
     setError('')
 
@@ -103,6 +105,8 @@ export default function AdminUsersPage() {
       setActingId(null)
       return
     }
+
+    await logAudit(currentlyBanned ? 'Unbanned' : 'Banned', 'user', userId, displayName ?? 'Unnamed user')
 
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, banned: !currentlyBanned } : u))
@@ -127,17 +131,20 @@ export default function AdminUsersPage() {
       return
     }
 
+    await logAudit(`Set role to ${newRole}`, 'user', userId, displayName ?? 'Unnamed user')
+
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u))
     )
     setActingId(null)
   }
 
-  const handleSuspend = async (userId: string) => {
+  const handleSuspend = async (userId: string, displayName: string | null) => {
     setActingId(userId)
     setError('')
 
     const hours = suspendDurations[userId] ?? 24
+    const durationLabel = DURATION_OPTIONS.find((d) => d.hours === hours)?.label ?? `${hours}h`
 
     const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/admin-users', {
@@ -157,13 +164,15 @@ export default function AdminUsersPage() {
       return
     }
 
+    await logAudit('Suspended', 'user', userId, displayName ?? 'Unnamed user', `Duration: ${durationLabel}`)
+
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, suspended_until: json.suspended_until } : u))
     )
     setActingId(null)
   }
 
-  const handleUnsuspend = async (userId: string) => {
+  const handleUnsuspend = async (userId: string, displayName: string | null) => {
     setActingId(userId)
     setError('')
 
@@ -184,6 +193,8 @@ export default function AdminUsersPage() {
       setActingId(null)
       return
     }
+
+    await logAudit('Unsuspended', 'user', userId, displayName ?? 'Unnamed user')
 
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, suspended_until: null } : u))
@@ -213,6 +224,8 @@ export default function AdminUsersPage() {
       setDeletingId(null)
       return
     }
+
+    await logAudit('Deleted account', 'user', userId, displayName ?? 'Unnamed user')
 
     setUsers((prev) => prev.filter((u) => u.id !== userId))
     setDeletingId(null)
@@ -253,7 +266,16 @@ export default function AdminUsersPage() {
     return new Date(b.last_sign_in_at).getTime() - new Date(a.last_sign_in_at).getTime()
   }
 
-  const sortedUsers = [...users].sort((a, b) => {
+  const searchLower = search.trim().toLowerCase()
+  const filteredUsers = users.filter((u) => {
+    if (!searchLower) return true
+    return (
+      (u.display_name ?? '').toLowerCase().includes(searchLower) ||
+      (u.email ?? '').toLowerCase().includes(searchLower)
+    )
+  })
+
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
     const rankA = ROLE_RANK[a.role] ?? 2
     const rankB = ROLE_RANK[b.role] ?? 2
     if (rankA !== rankB) return rankA - rankB
@@ -264,7 +286,7 @@ export default function AdminUsersPage() {
     <>
       <Header />
       <div className="max-w-4xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <h1 className="text-2xl font-bold">
             Users ({sortedUsers.length}) {isModerator && <span className="text-sm font-normal text-gray-500">— Moderator view</span>}
           </h1>
@@ -281,9 +303,21 @@ export default function AdminUsersPage() {
           </select>
         </div>
 
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name or email..."
+          className="w-full border rounded-md px-3 py-2 mb-2"
+        />
+
         <p className="text-xs text-gray-400 mb-4">Admins shown first, then moderators, then other users.</p>
 
         {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+
+        {sortedUsers.length === 0 && (
+          <p className="text-gray-500">No users match your search.</p>
+        )}
 
         <div className="space-y-3">
           {sortedUsers.map((u) => {
@@ -326,7 +360,7 @@ export default function AdminUsersPage() {
                   <div className="flex gap-2 flex-wrap">
                     {isAdmin && !isProtected && (
                       <button
-                        onClick={() => toggleBan(u.id, u.banned)}
+                        onClick={() => toggleBan(u.id, u.display_name, u.banned)}
                         disabled={actingId === u.id}
                         className={`text-xs font-bold px-3 py-1.5 rounded disabled:opacity-50 ${
                           u.banned
@@ -379,7 +413,7 @@ export default function AdminUsersPage() {
                     <div className="flex gap-2 items-center">
                       {isCurrentlySuspended ? (
                         <button
-                          onClick={() => handleUnsuspend(u.id)}
+                          onClick={() => handleUnsuspend(u.id, u.display_name)}
                           disabled={actingId === u.id}
                           className="text-xs font-bold px-3 py-1.5 rounded border border-green-600 text-green-700 hover:bg-green-50 disabled:opacity-50"
                         >
@@ -401,7 +435,7 @@ export default function AdminUsersPage() {
                             ))}
                           </select>
                           <button
-                            onClick={() => handleSuspend(u.id)}
+                            onClick={() => handleSuspend(u.id, u.display_name)}
                             disabled={actingId === u.id}
                             className="text-xs font-bold px-3 py-1.5 rounded border border-orange-600 text-orange-700 hover:bg-orange-50 disabled:opacity-50"
                           >
