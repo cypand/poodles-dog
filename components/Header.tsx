@@ -201,9 +201,6 @@ export default function Header() {
             <Link href="/search" className="text-pd-gold">
               LISTINGS
             </Link>
-            <Link href="/breeders" className="hover:text-pd-gold">
-              BREEDERS
-            </Link>
             {canPostListing && (
               <Link href="/post-a-listing" className="hover:text-pd-gold">
                 POST A LISTING
@@ -238,6 +235,14 @@ export default function Header() {
                     </span>
                   )}
                 </Link>
+                {isAdmin && (
+                  <Link
+                    href="/breeders"
+                    className="border border-white/30 px-3 py-1 text-xs font-bold hover:border-pd-gold hover:text-pd-gold"
+                  >
+                    BREEDERS
+                  </Link>
+                )}
                 {isStaff && (
                   <>
                     <Link
