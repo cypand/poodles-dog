@@ -14,6 +14,7 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [displayName, setDisplayName] = useState('')
   const [role, setRole] = useState<'buyer' | 'breeder'>('buyer')
+  const [termsAccepted, setTermsAccepted] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -26,6 +27,11 @@ export default function RegisterPage() {
 
     if (password !== confirmPassword) {
       setError('Passwords do not match.')
+      return
+    }
+
+    if (!termsAccepted) {
+      setError('You must accept the Terms of Service and Privacy Policy to continue.')
       return
     }
 
@@ -57,7 +63,7 @@ export default function RegisterPage() {
     setError('')
     setVerifying(true)
 
-    const { error: verifyError } = await supabase.auth.verifyOtp({
+    const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
       email,
       token: otp,
       type: 'signup',
@@ -67,6 +73,13 @@ export default function RegisterPage() {
       setError(verifyError.message)
       setVerifying(false)
       return
+    }
+
+    if (verifyData.user) {
+      await supabase
+        .from('profiles')
+        .update({ terms_accepted_at: new Date().toISOString() })
+        .eq('id', verifyData.user.id)
     }
 
     setVerifying(false)
@@ -217,6 +230,21 @@ export default function RegisterPage() {
             </label>
           </div>
         </div>
+
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={(e) => setTermsAccepted(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span>
+            I agree to the{' '}
+            <a href="/legal" target="_blank" className="underline">
+              Terms of Service and Privacy Policy
+            </a>
+          </span>
+        </label>
 
         {error && (
           <p className="text-red-600 text-sm">{error}</p>
