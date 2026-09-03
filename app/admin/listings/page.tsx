@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase/client'
 import { logAudit } from '@/lib/audit'
 import Header from '@/components/Header'
 
+const PAGE_SIZE = 20
+
 type Listing = {
   id: string
   title: string
@@ -39,6 +41,7 @@ export default function AdminListingsPage() {
   const [filter, setFilter] = useState<'PENDING' | 'ALL'>('PENDING')
   const [sortBy, setSortBy] = useState<SortOption>('newest')
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
     const load = async () => {
@@ -82,6 +85,10 @@ export default function AdminListingsPage() {
     }
     load()
   }, [router, filter])
+
+  useEffect(() => {
+    setPage(1)
+  }, [filter, sortBy])
 
   const handleDecision = async (listingId: string, listingTitle: string, newStatus: 'ACTIVE' | 'REJECTED') => {
     setActionError('')
@@ -171,6 +178,10 @@ export default function AdminListingsPage() {
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   })
 
+  const totalPages = Math.max(1, Math.ceil(sortedListings.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pageListings = sortedListings.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
   return (
     <>
       <Header />
@@ -217,7 +228,7 @@ export default function AdminListingsPage() {
         )}
 
         <div className="space-y-4">
-          {sortedListings.map((listing) => {
+          {pageListings.map((listing) => {
             const photo = listing.photos?.sort((a, b) => a.sort_order - b.sort_order)[0]
             return (
               <div key={listing.id} className="border rounded-md p-4 flex gap-4">
@@ -279,6 +290,28 @@ export default function AdminListingsPage() {
             )
           })}
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-4 mt-8">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 border rounded-md text-sm disabled:opacity-30"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 border rounded-md text-sm disabled:opacity-30"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </>
   )
