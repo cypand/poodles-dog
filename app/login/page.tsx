@@ -72,69 +72,73 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto mt-16 p-6">
-      <h1 className="text-2xl font-bold mb-6">Log in</h1>
+    <div className="bg-pd-cream min-h-screen">
+      <div className="max-w-md mx-auto pt-16 p-6">
+        <div className="bg-white border border-pd-black/10 rounded-md p-6">
+          <h1 className="text-2xl font-bold mb-6 text-pd-black">Log in</h1>
 
-      <form onSubmit={handleLogin} className="space-y-4" autoComplete="on">
-        <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
-          <input
-            type="email"
-            name="email"
-            id="email"
-            autoComplete="username"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full border rounded-md px-3 py-2"
-          />
+          <form onSubmit={handleLogin} className="space-y-4" autoComplete="on">
+            <div>
+              <label className="block text-sm font-medium mb-1 text-pd-black">Email</label>
+              <input
+                type="email"
+                name="email"
+                id="email"
+                autoComplete="username"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border border-pd-black/15 rounded-md px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1 text-pd-black">Password</label>
+              <input
+                type="password"
+                name="password"
+                id="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full border border-pd-black/15 rounded-md px-3 py-2"
+              />
+              <a href="/forgot-password" className="text-xs text-pd-gray underline mt-1 inline-block">
+                Forgot password?
+              </a>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm text-pd-black">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+              Remember my email
+            </label>
+
+            {error && (
+              <p className="text-red-600 text-sm">{error}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-pd-black text-pd-gold rounded-md py-2 font-medium disabled:opacity-50"
+            >
+              {loading ? 'Logging in...' : 'Log in'}
+            </button>
+          </form>
+
+          <p className="text-sm text-pd-gray mt-4 text-center">
+            Don't have an account?{' '}
+            <a href="/register" className="underline">
+              Register here
+            </a>
+          </p>
         </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Password</label>
-          <input
-            type="password"
-            name="password"
-            id="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full border rounded-md px-3 py-2"
-          />
-          <a href="/forgot-password" className="text-xs text-gray-500 underline mt-1 inline-block">
-            Forgot password?
-          </a>
-        </div>
-
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={rememberMe}
-            onChange={(e) => setRememberMe(e.target.checked)}
-          />
-          Remember my email
-        </label>
-
-        {error && (
-          <p className="text-red-600 text-sm">{error}</p>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-black text-white rounded-md py-2 font-medium disabled:opacity-50"
-        >
-          {loading ? 'Logging in...' : 'Log in'}
-        </button>
-      </form>
-
-      <p className="text-sm text-gray-600 mt-4 text-center">
-        Don't have an account?{' '}
-        <a href="/register" className="underline">
-          Register here
-        </a>
-      </p>
+      </div>
     </div>
   )
 }
