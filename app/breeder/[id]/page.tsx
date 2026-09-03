@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { BadgeCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
 
@@ -14,6 +15,7 @@ type BreederProfile = {
   website_url: string | null
   instagram_url: string | null
   facebook_url: string | null
+  verification_status: string
   profile: { display_name: string | null } | null
 }
 
@@ -47,7 +49,7 @@ export default function BreederProfilePage() {
       const { data: breederData } = await supabase
         .from('breeder_profiles')
         .select(
-          `id, kennel_name, about, years_breeding, website_url, instagram_url, facebook_url,
+          `id, kennel_name, about, years_breeding, website_url, instagram_url, facebook_url, verification_status,
            profile:profiles(display_name)`
         )
         .eq('id', breederId)
@@ -129,7 +131,9 @@ export default function BreederProfilePage() {
     return (
       <>
         <Header />
-        <div className="max-w-3xl mx-auto p-6 text-gray-500">Loading...</div>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-3xl mx-auto p-6 text-pd-gray">Loading...</div>
+        </div>
       </>
     )
   }
@@ -138,93 +142,111 @@ export default function BreederProfilePage() {
     return (
       <>
         <Header />
-        <div className="max-w-3xl mx-auto p-6 text-gray-500">Breeder not found.</div>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-3xl mx-auto p-6 text-pd-gray">Breeder not found.</div>
+        </div>
       </>
     )
   }
 
   const isSelf = userId === breeder.id
+  const isVerified = breeder.verification_status === 'verified'
 
   return (
     <>
       <Header />
-      <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-1">{breeder.kennel_name || breeder.profile?.display_name}</h1>
-        {breeder.years_breeding && (
-          <p className="text-sm text-gray-500 mb-4">{breeder.years_breeding} years breeding</p>
-        )}
-
-        {breeder.about && <p className="text-gray-700 mb-4 whitespace-pre-wrap">{breeder.about}</p>}
-
-        <div className="flex gap-3 text-sm mb-6">
-          {breeder.website_url && (
-            <a href={breeder.website_url} target="_blank" rel="noreferrer" className="underline text-blue-600">
-              Website
-            </a>
-          )}
-          {breeder.instagram_url && (
-            <a href={breeder.instagram_url} target="_blank" rel="noreferrer" className="underline text-blue-600">
-              Instagram
-            </a>
-          )}
-          {breeder.facebook_url && (
-            <a href={breeder.facebook_url} target="_blank" rel="noreferrer" className="underline text-blue-600">
-              Facebook
-            </a>
-          )}
-        </div>
-
-        {!isSelf && (
-          <div className="border rounded-md p-4 mb-8">
-            <h2 className="font-bold mb-2">Message this breeder</h2>
-            {sent ? (
-              <p className="text-green-700 text-sm">Message sent! Redirecting...</p>
-            ) : (
-              <>
-                <textarea
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  rows={3}
-                  placeholder="Say hello..."
-                  className="w-full border rounded-md px-3 py-2 text-sm mb-2"
-                />
-                {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
-                <button
-                  onClick={handleSendMessage}
-                  disabled={sending || !messageText.trim()}
-                  className="bg-black text-white px-4 py-2 rounded-md text-sm font-bold disabled:opacity-50"
-                >
-                  {sending ? 'Sending...' : 'Send message'}
-                </button>
-              </>
+      <div className="bg-pd-cream min-h-screen">
+        <div className="max-w-3xl mx-auto p-6">
+          <div className="bg-pd-black text-white rounded-md p-6 mb-6">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-bold">{breeder.kennel_name || breeder.profile?.display_name}</h1>
+              {isVerified && (
+                <span className="flex items-center gap-1 text-xs font-bold bg-pd-gold text-pd-black px-2 py-1 rounded">
+                  <BadgeCheck size={14} /> Verified Breeder
+                </span>
+              )}
+            </div>
+            {breeder.years_breeding && (
+              <p className="text-sm text-white/60 mt-1">{breeder.years_breeding} years breeding</p>
             )}
           </div>
-        )}
 
-        <h2 className="text-lg font-bold mb-3">Listings ({listings.length})</h2>
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {listings.map((listing) => {
-            const photo = listing.photos?.sort((a, b) => a.sort_order - b.sort_order)[0]
-            return (
-              <Link key={listing.id} href={`/listing/${listing.id}`} className="border rounded-md overflow-hidden">
-                <div className="aspect-square bg-gray-100">
-                  {photo ? (
-                    <img src={photo.url} alt={listing.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                      No photo
-                    </div>
-                  )}
-                </div>
-                <div className="p-2">
-                  <p className="text-sm font-semibold truncate">{listing.title || 'Untitled'}</p>
-                  <p className="text-xs text-gray-500">
-                    {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
-                  </p>
-                </div>
-              </Link>
-            )
-          })}
+          {breeder.about && (
+            <p className="text-pd-black/80 mb-4 whitespace-pre-wrap bg-white border border-pd-black/10 rounded-md p-4">
+              {breeder.about}
+            </p>
+          )}
+
+          <div className="flex gap-3 text-sm mb-6">
+            {breeder.website_url && (
+              <a href={breeder.website_url} target="_blank" rel="noreferrer" className="underline text-blue-600">
+                Website
+              </a>
+            )}
+            {breeder.instagram_url && (
+              <a href={breeder.instagram_url} target="_blank" rel="noreferrer" className="underline text-blue-600">
+                Instagram
+              </a>
+            )}
+            {breeder.facebook_url && (
+              <a href={breeder.facebook_url} target="_blank" rel="noreferrer" className="underline text-blue-600">
+                Facebook
+              </a>
+            )}
+          </div>
+
+          {!isSelf && (
+            <div className="border border-pd-black/10 rounded-md p-4 mb-8 bg-white">
+              <h2 className="font-bold mb-2 text-pd-black">Message this breeder</h2>
+              {sent ? (
+                <p className="text-green-700 text-sm">Message sent! Redirecting...</p>
+              ) : (
+                <>
+                  <textarea
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    rows={3}
+                    placeholder="Say hello..."
+                    className="w-full border border-pd-black/15 rounded-md px-3 py-2 text-sm mb-2"
+                  />
+                  {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={sending || !messageText.trim()}
+                    className="bg-pd-black text-pd-gold px-4 py-2 rounded-md text-sm font-bold disabled:opacity-50"
+                  >
+                    {sending ? 'Sending...' : 'Send message'}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          <h2 className="text-lg font-bold mb-3 text-pd-black">Listings ({listings.length})</h2>
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {listings.map((listing) => {
+              const photo = listing.photos?.sort((a, b) => a.sort_order - b.sort_order)[0]
+              return (
+                <Link key={listing.id} href={`/listing/${listing.id}`} className="bg-white border border-pd-black/10 rounded-md overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                  <div className="aspect-square bg-pd-cream">
+                    {photo ? (
+                      <img src={photo.url} alt={listing.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-pd-gray text-xs">
+                        No photo
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-2">
+                    <p className="text-sm font-semibold truncate text-pd-black">{listing.title || 'Untitled'}</p>
+                    <p className="text-xs text-pd-gold font-bold">
+                      {listing.price ? `${listing.price} ${listing.currency_code}` : 'Price on request'}
+                    </p>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
         </div>
       </div>
     </>
