@@ -137,7 +137,9 @@ export default function MessagesPage() {
     return (
       <>
         <Header />
-        <div className="max-w-2xl mx-auto p-6 text-gray-500">Loading...</div>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-2xl mx-auto p-6 text-pd-gray">Loading...</div>
+        </div>
       </>
     )
   }
@@ -145,54 +147,56 @@ export default function MessagesPage() {
   return (
     <>
       <Header />
-      <div className="max-w-2xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-6">Messages</h1>
+      <div className="bg-pd-cream min-h-screen">
+        <div className="max-w-2xl mx-auto p-6">
+          <h1 className="text-2xl font-bold mb-6 text-pd-black">Messages</h1>
 
-        {conversations.length === 0 && (
-          <p className="text-gray-500">No conversations yet.</p>
-        )}
+          {conversations.length === 0 && (
+            <p className="text-pd-gray">No conversations yet.</p>
+          )}
 
-        <div className="space-y-2">
-          {conversations.map((c) => (
-            <div key={c.id} className="border rounded-md p-4">
-              <Link href={`/messages/${c.id}`} className="block hover:opacity-80">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold">{c.otherName}</p>
-                    {c.listingTitle && (
-                      <p className="text-sm text-gray-500">Re: {c.listingTitle}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {c.unread_count > 0 && (
-                      <span className="bg-pd-gold text-pd-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                        {c.unread_count}
+          <div className="space-y-2">
+            {conversations.map((c) => (
+              <div key={c.id} className="bg-white border border-pd-black/10 rounded-md p-4">
+                <Link href={`/messages/${c.id}`} className="block hover:opacity-80">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-pd-black">{c.otherName}</p>
+                      {c.listingTitle && (
+                        <p className="text-sm text-pd-gray">Re: {c.listingTitle}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {c.unread_count > 0 && (
+                        <span className="bg-pd-gold text-pd-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                          {c.unread_count}
+                        </span>
+                      )}
+                      <span className="text-xs text-pd-gray">
+                        {new Date(c.last_message_at).toLocaleDateString()}
                       </span>
-                    )}
-                    <span className="text-xs text-gray-400">
-                      {new Date(c.last_message_at).toLocaleDateString()}
-                    </span>
+                    </div>
                   </div>
+                </Link>
+                <div className="flex gap-3 mt-3">
+                  <button
+                    onClick={() => handleMarkUnread(c.id)}
+                    disabled={busyId === c.id}
+                    className="text-xs font-bold text-pd-gray hover:text-pd-black disabled:opacity-50"
+                  >
+                    Mark as unread
+                  </button>
+                  <button
+                    onClick={() => handleDelete(c.id)}
+                    disabled={busyId === c.id}
+                    className="text-xs font-bold text-red-600 hover:text-red-800 disabled:opacity-50"
+                  >
+                    {busyId === c.id ? 'Deleting...' : 'Delete'}
+                  </button>
                 </div>
-              </Link>
-              <div className="flex gap-3 mt-3">
-                <button
-                  onClick={() => handleMarkUnread(c.id)}
-                  disabled={busyId === c.id}
-                  className="text-xs font-bold text-gray-600 hover:text-black disabled:opacity-50"
-                >
-                  Mark as unread
-                </button>
-                <button
-                  onClick={() => handleDelete(c.id)}
-                  disabled={busyId === c.id}
-                  className="text-xs font-bold text-red-600 hover:text-red-800 disabled:opacity-50"
-                >
-                  {busyId === c.id ? 'Deleting...' : 'Delete'}
-                </button>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </>
