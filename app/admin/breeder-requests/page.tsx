@@ -136,7 +136,9 @@ export default function BreederRequestsPage() {
     return (
       <>
         <Header />
-        <div className="max-w-3xl mx-auto p-6 text-gray-500">Loading...</div>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-3xl mx-auto p-6 text-pd-gray">Loading...</div>
+        </div>
       </>
     )
   }
@@ -145,8 +147,10 @@ export default function BreederRequestsPage() {
     return (
       <>
         <Header />
-        <div className="max-w-3xl mx-auto p-6">
-          <p className="text-red-600">You do not have access to this page.</p>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-3xl mx-auto p-6">
+            <p className="text-red-600">You do not have access to this page.</p>
+          </div>
         </div>
       </>
     )
@@ -158,69 +162,73 @@ export default function BreederRequestsPage() {
   return (
     <>
       <Header />
-      <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-6">Breeder Requests</h1>
+      <div className="bg-pd-cream min-h-screen">
+        <div className="max-w-3xl mx-auto p-6">
+          <div className="bg-pd-black text-white rounded-md p-4 mb-6">
+            <h1 className="text-xl font-bold">Breeder Requests</h1>
+          </div>
 
-        {loading && <p className="text-gray-500">Loading...</p>}
-        {actionError && <p className="text-red-600 text-sm mb-4">{actionError}</p>}
+          {loading && <p className="text-pd-gray">Loading...</p>}
+          {actionError && <p className="text-red-600 text-sm mb-4">{actionError}</p>}
 
-        {!loading && pending.length === 0 && (
-          <p className="text-gray-500 mb-8">No pending requests.</p>
-        )}
+          {!loading && pending.length === 0 && (
+            <p className="text-pd-gray mb-8">No pending requests.</p>
+          )}
 
-        <div className="space-y-4 mb-10">
-          {pending.map((req) => (
-            <div key={req.id} className="border rounded-md p-4">
-              <p className="font-semibold">{req.requester?.display_name ?? 'Unknown user'}</p>
-              {req.kennel_name && <p className="text-sm text-gray-600 mt-1">Kennel: {req.kennel_name}</p>}
-              {req.litter_parents && (
-                <p className="text-sm text-gray-600 mt-1">Parents: {req.litter_parents}</p>
-              )}
-              {req.litter_size && (
-                <p className="text-sm text-gray-600 mt-1">Litter size: {req.litter_size}</p>
-              )}
-              {req.message && <p className="text-sm text-gray-600 mt-1">Note: {req.message}</p>}
-              <p className="text-xs text-gray-400 mt-2">{new Date(req.created_at).toLocaleString()}</p>
+          <div className="space-y-4 mb-10">
+            {pending.map((req) => (
+              <div key={req.id} className="bg-white border border-pd-black/10 rounded-md p-4">
+                <p className="font-semibold text-pd-black">{req.requester?.display_name ?? 'Unknown user'}</p>
+                {req.kennel_name && <p className="text-sm text-pd-gray mt-1">Kennel: {req.kennel_name}</p>}
+                {req.litter_parents && (
+                  <p className="text-sm text-pd-gray mt-1">Parents: {req.litter_parents}</p>
+                )}
+                {req.litter_size && (
+                  <p className="text-sm text-pd-gray mt-1">Litter size: {req.litter_size}</p>
+                )}
+                {req.message && <p className="text-sm text-pd-gray mt-1">Note: {req.message}</p>}
+                <p className="text-xs text-pd-gray mt-2">{new Date(req.created_at).toLocaleString()}</p>
 
-              <div className="flex gap-2 mt-3">
-                <button
-                  onClick={() => handleApprove(req)}
-                  disabled={processingId === req.id}
-                  className="px-3 py-1 bg-black text-white text-sm rounded-md disabled:opacity-50"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => handleReject(req)}
-                  disabled={processingId === req.id}
-                  className="px-3 py-1 border border-red-600 text-red-600 text-sm rounded-md disabled:opacity-50"
-                >
-                  Reject
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {resolved.length > 0 && (
-          <>
-            <h2 className="text-lg font-bold mb-3">Past requests</h2>
-            <div className="space-y-2">
-              {resolved.map((req) => (
-                <div key={req.id} className="border rounded-md p-3 flex items-center justify-between">
-                  <span className="text-sm">{req.requester?.display_name ?? 'Unknown user'}</span>
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                      req.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                    }`}
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => handleApprove(req)}
+                    disabled={processingId === req.id}
+                    className="px-3 py-1 bg-pd-black text-pd-gold text-sm rounded-md disabled:opacity-50"
                   >
-                    {req.status}
-                  </span>
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleReject(req)}
+                    disabled={processingId === req.id}
+                    className="px-3 py-1 border border-red-600 text-red-600 text-sm rounded-md disabled:opacity-50 bg-white"
+                  >
+                    Reject
+                  </button>
                 </div>
-              ))}
-            </div>
-          </>
-        )}
+              </div>
+            ))}
+          </div>
+
+          {resolved.length > 0 && (
+            <>
+              <h2 className="text-lg font-bold mb-3 text-pd-black">Past requests</h2>
+              <div className="space-y-2">
+                {resolved.map((req) => (
+                  <div key={req.id} className="bg-white border border-pd-black/10 rounded-md p-3 flex items-center justify-between">
+                    <span className="text-sm text-pd-black">{req.requester?.display_name ?? 'Unknown user'}</span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        req.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-pd-cream text-pd-gray'
+                      }`}
+                    >
+                      {req.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </>
   )
