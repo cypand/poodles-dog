@@ -16,8 +16,11 @@ export default function Header() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingListingsCount, setPendingListingsCount] = useState(0);
   const [pendingReportsCount, setPendingReportsCount] = useState(0);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
 
   const isAdmin = role === "admin";
+  const isModerator = role === "moderator";
+  const isStaff = isAdmin || isModerator;
   const canPostListing = role === "breeder" || role === "admin";
 
   useEffect(() => {
@@ -39,7 +42,7 @@ export default function Header() {
           .eq("read", false);
         setUnreadCount(count ?? 0);
 
-        if (profile?.role === "admin") {
+        if (profile?.role === "admin" || profile?.role === "moderator") {
           const { count: pendingListings } = await supabase
             .from("listings")
             .select("id", { count: "exact", head: true })
@@ -51,6 +54,12 @@ export default function Header() {
             .select("id", { count: "exact", head: true })
             .eq("status", "PENDING");
           setPendingReportsCount(pendingReports ?? 0);
+
+          const { count: pendingRequests } = await supabase
+            .from("role_change_requests")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "PENDING");
+          setPendingRequestsCount(pendingRequests ?? 0);
         }
       } else {
         setDisplayName(null);
@@ -58,6 +67,7 @@ export default function Header() {
         setUnreadCount(0);
         setPendingListingsCount(0);
         setPendingReportsCount(0);
+        setPendingRequestsCount(0);
       }
       setLoading(false);
     };
@@ -140,7 +150,7 @@ export default function Header() {
                     </span>
                   )}
                 </Link>
-                {isAdmin && (
+                {isStaff && (
                   <>
                     <Link
                       href="/admin/listings"
@@ -165,11 +175,24 @@ export default function Header() {
                       )}
                     </Link>
                     <Link
-                      href="/admin/users"
-                      className="border border-white/30 px-3 py-1 text-xs font-bold hover:border-pd-gold hover:text-pd-gold"
+                      href="/admin/breeder-requests"
+                      className="relative border border-white/30 px-3 py-1 text-xs font-bold hover:border-pd-gold hover:text-pd-gold"
                     >
-                      USERS
+                      REQUESTS
+                      {pendingRequestsCount > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                          {pendingRequestsCount > 9 ? '9+' : pendingRequestsCount}
+                        </span>
+                      )}
                     </Link>
+                    {isAdmin && (
+                      <Link
+                        href="/admin/users"
+                        className="border border-white/30 px-3 py-1 text-xs font-bold hover:border-pd-gold hover:text-pd-gold"
+                      >
+                        USERS
+                      </Link>
+                    )}
                   </>
                 )}
                 <Link
