@@ -282,7 +282,9 @@ export default function AdminUsersPage() {
     return (
       <>
         <Header />
-        <div className="max-w-4xl mx-auto p-6 text-gray-500">Loading...</div>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-4xl mx-auto p-6 text-pd-gray">Loading...</div>
+        </div>
       </>
     )
   }
@@ -291,8 +293,10 @@ export default function AdminUsersPage() {
     return (
       <>
         <Header />
-        <div className="max-w-4xl mx-auto p-6">
-          <p className="text-red-600">You do not have access to this page.</p>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-4xl mx-auto p-6">
+            <p className="text-red-600">You do not have access to this page.</p>
+          </div>
         </div>
       </>
     )
@@ -332,211 +336,213 @@ export default function AdminUsersPage() {
   return (
     <>
       <Header />
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-          <h1 className="text-2xl font-bold">
-            Users ({sortedUsers.length}) {isModerator && <span className="text-sm font-normal text-gray-500">— Moderator view</span>}
-          </h1>
+      <div className="bg-pd-cream min-h-screen">
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="bg-pd-black text-white rounded-md p-4 mb-4 flex items-center justify-between flex-wrap gap-3">
+            <h1 className="text-xl font-bold">
+              Users ({sortedUsers.length}) {isModerator && <span className="text-sm font-normal text-white/60">— Moderator view</span>}
+            </h1>
 
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="border rounded-md px-3 py-2 text-sm"
-          >
-            <option value="last_login">Sort: Last login</option>
-            <option value="name">Sort: Name (A-Z)</option>
-            <option value="newest">Sort: Newest users</option>
-            <option value="listings">Sort: Most listings</option>
-          </select>
-        </div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="border border-white/20 bg-pd-black text-white rounded-md px-3 py-2 text-sm"
+            >
+              <option value="last_login">Sort: Last login</option>
+              <option value="name">Sort: Name (A-Z)</option>
+              <option value="newest">Sort: Newest users</option>
+              <option value="listings">Sort: Most listings</option>
+            </select>
+          </div>
 
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or email..."
-          className="w-full border rounded-md px-3 py-2 mb-2"
-        />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name or email..."
+            className="w-full border border-pd-black/15 rounded-md px-3 py-2 mb-2 bg-white"
+          />
 
-        <p className="text-xs text-gray-400 mb-4">Admins shown first, then moderators, then other users.</p>
+          <p className="text-xs text-pd-gray mb-4">Admins shown first, then moderators, then other users.</p>
 
-        {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+          {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
 
-        {sortedUsers.length === 0 && (
-          <p className="text-gray-500">No users match your search.</p>
-        )}
+          {sortedUsers.length === 0 && (
+            <p className="text-pd-gray">No users match your search.</p>
+          )}
 
-        <div className="space-y-3">
-          {sortedUsers.map((u) => {
-            const isProtected = u.email === PROTECTED_ADMIN_EMAIL
-            const isCurrentlySuspended = u.suspended_until && new Date(u.suspended_until) > new Date()
-            const canModerate = !isProtected && u.role !== 'admin'
-            const canChangeRole = isAdmin && !isProtected
+          <div className="space-y-3">
+            {sortedUsers.map((u) => {
+              const isProtected = u.email === PROTECTED_ADMIN_EMAIL
+              const isCurrentlySuspended = u.suspended_until && new Date(u.suspended_until) > new Date()
+              const canModerate = !isProtected && u.role !== 'admin'
+              const canChangeRole = isAdmin && !isProtected
 
-            return (
-              <div key={u.id} className="border rounded-md p-4">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {u.role === 'admin' && <Crown size={16} className="text-pd-gold" />}
-                      {u.role === 'moderator' && <ShieldCheck size={16} className="text-blue-600" />}
-                      <span className="font-semibold">{u.display_name ?? 'Unnamed'}</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700 uppercase">
-                        {u.role}
-                      </span>
-                      {u.banned && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-700">
-                          BANNED
+              return (
+                <div key={u.id} className="bg-white border border-pd-black/10 rounded-md p-4">
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {u.role === 'admin' && <Crown size={16} className="text-pd-gold" />}
+                        {u.role === 'moderator' && <ShieldCheck size={16} className="text-blue-600" />}
+                        <span className="font-semibold text-pd-black">{u.display_name ?? 'Unnamed'}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-pd-cream text-pd-black uppercase">
+                          {u.role}
                         </span>
+                        {u.banned && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-700">
+                            BANNED
+                          </span>
+                        )}
+                        {isCurrentlySuspended && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-100 text-orange-700">
+                            SUSPENDED until {new Date(u.suspended_until!).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-pd-gray">{u.email ?? '—'}</p>
+                      <p className="text-xs text-pd-gray mt-1">
+                        Last login:{' '}
+                        {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString() : 'Never'}
+                        {' · '}
+                        {u.listing_count} {u.listing_count === 1 ? 'listing' : 'listings'}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2 flex-wrap">
+                      {canChangeRole && u.role !== 'admin' && (
+                        <button
+                          onClick={() => handleSetRole(u.id, u.display_name, 'admin')}
+                          disabled={actingId === u.id}
+                          className="text-xs font-bold px-3 py-1.5 rounded border border-pd-gold text-pd-gold hover:bg-pd-gold hover:text-pd-black disabled:opacity-50 bg-white"
+                        >
+                          Admin
+                        </button>
                       )}
-                      {isCurrentlySuspended && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-100 text-orange-700">
-                          SUSPENDED until {new Date(u.suspended_until!).toLocaleString()}
-                        </span>
+                      {canChangeRole && u.role !== 'moderator' && (
+                        <button
+                          onClick={() => handleSetRole(u.id, u.display_name, 'moderator')}
+                          disabled={actingId === u.id}
+                          className="text-xs font-bold px-3 py-1.5 rounded border border-blue-600 text-blue-700 hover:bg-blue-50 disabled:opacity-50 bg-white"
+                        >
+                          Moderator
+                        </button>
+                      )}
+                      {canChangeRole && (u.role === 'admin' || u.role === 'moderator') && (
+                        <button
+                          onClick={() => handleSetRole(u.id, u.display_name, 'buyer')}
+                          disabled={actingId === u.id}
+                          className="text-xs font-bold px-3 py-1.5 rounded border border-pd-black/30 text-pd-black hover:bg-pd-cream disabled:opacity-50 bg-white"
+                        >
+                          Remove role
+                        </button>
+                      )}
+                      {isAdmin && u.role !== 'admin' && !isProtected && (
+                        <button
+                          onClick={() => handleDeleteUser(u.id, u.display_name)}
+                          disabled={deletingId === u.id}
+                          className="text-xs font-bold px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                        >
+                          {deletingId === u.id ? 'Deleting...' : 'Delete'}
+                        </button>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500">{u.email ?? '—'}</p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Last login:{' '}
-                      {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString() : 'Never'}
-                      {' · '}
-                      {u.listing_count} {u.listing_count === 1 ? 'listing' : 'listings'}
-                    </p>
                   </div>
 
-                  <div className="flex gap-2 flex-wrap">
-                    {canChangeRole && u.role !== 'admin' && (
-                      <button
-                        onClick={() => handleSetRole(u.id, u.display_name, 'admin')}
-                        disabled={actingId === u.id}
-                        className="text-xs font-bold px-3 py-1.5 rounded border border-pd-gold text-pd-gold hover:bg-pd-gold hover:text-pd-black disabled:opacity-50"
-                      >
-                        Admin
-                      </button>
-                    )}
-                    {canChangeRole && u.role !== 'moderator' && (
-                      <button
-                        onClick={() => handleSetRole(u.id, u.display_name, 'moderator')}
-                        disabled={actingId === u.id}
-                        className="text-xs font-bold px-3 py-1.5 rounded border border-blue-600 text-blue-700 hover:bg-blue-50 disabled:opacity-50"
-                      >
-                        Moderator
-                      </button>
-                    )}
-                    {canChangeRole && (u.role === 'admin' || u.role === 'moderator') && (
-                      <button
-                        onClick={() => handleSetRole(u.id, u.display_name, 'buyer')}
-                        disabled={actingId === u.id}
-                        className="text-xs font-bold px-3 py-1.5 rounded border border-gray-500 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                      >
-                        Remove role
-                      </button>
-                    )}
-                    {isAdmin && u.role !== 'admin' && !isProtected && (
-                      <button
-                        onClick={() => handleDeleteUser(u.id, u.display_name)}
-                        disabled={deletingId === u.id}
-                        className="text-xs font-bold px-3 py-1.5 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                      >
-                        {deletingId === u.id ? 'Deleting...' : 'Delete'}
-                      </button>
-                    )}
-                  </div>
+                  {canModerate && (
+                    <div className="mt-4 pt-3 border-t border-pd-black/10 space-y-3">
+                      {isAdmin && !u.banned && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-bold text-pd-gray w-16">Ban:</span>
+                          <select
+                            value={banReasons[u.id] ?? ''}
+                            onChange={(e) => setBanReasons((prev) => ({ ...prev, [u.id]: e.target.value }))}
+                            className="text-xs border border-pd-black/15 rounded px-2 py-1.5 flex-1 min-w-[160px] bg-white"
+                          >
+                            <option value="">Select reason...</option>
+                            {BAN_REASONS.map((r) => (
+                              <option key={r} value={r}>
+                                {r}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => toggleBan(u.id, u.display_name, false)}
+                            disabled={actingId === u.id}
+                            className="text-xs font-bold px-3 py-1.5 rounded border border-red-600 text-red-600 hover:bg-red-50 disabled:opacity-50 bg-white"
+                          >
+                            {actingId === u.id ? 'Updating...' : 'Ban'}
+                          </button>
+                        </div>
+                      )}
+
+                      {isAdmin && u.banned && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-pd-gray w-16">Ban:</span>
+                          <button
+                            onClick={() => toggleBan(u.id, u.display_name, true)}
+                            disabled={actingId === u.id}
+                            className="text-xs font-bold px-3 py-1.5 rounded border border-green-600 text-green-700 hover:bg-green-50 disabled:opacity-50 bg-white"
+                          >
+                            {actingId === u.id ? 'Updating...' : 'Unban'}
+                          </button>
+                        </div>
+                      )}
+
+                      {isCurrentlySuspended ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-pd-gray w-16">Suspend:</span>
+                          <button
+                            onClick={() => handleUnsuspend(u.id, u.display_name)}
+                            disabled={actingId === u.id}
+                            className="text-xs font-bold px-3 py-1.5 rounded border border-green-600 text-green-700 hover:bg-green-50 disabled:opacity-50 bg-white"
+                          >
+                            {actingId === u.id ? 'Updating...' : 'Unsuspend'}
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-bold text-pd-gray w-16">Suspend:</span>
+                          <select
+                            value={suspendReasons[u.id] ?? ''}
+                            onChange={(e) => setSuspendReasons((prev) => ({ ...prev, [u.id]: e.target.value }))}
+                            className="text-xs border border-pd-black/15 rounded px-2 py-1.5 flex-1 min-w-[160px] bg-white"
+                          >
+                            <option value="">Select reason...</option>
+                            {SUSPEND_REASONS.map((r) => (
+                              <option key={r} value={r}>
+                                {r}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            value={suspendDurations[u.id] ?? 24}
+                            onChange={(e) =>
+                              setSuspendDurations((prev) => ({ ...prev, [u.id]: Number(e.target.value) }))
+                            }
+                            className="text-xs border border-pd-black/15 rounded px-2 py-1.5 bg-white"
+                          >
+                            {DURATION_OPTIONS.map((opt) => (
+                              <option key={opt.hours} value={opt.hours}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => handleSuspend(u.id, u.display_name)}
+                            disabled={actingId === u.id}
+                            className="text-xs font-bold px-3 py-1.5 rounded border border-orange-600 text-orange-700 hover:bg-orange-50 disabled:opacity-50 bg-white"
+                          >
+                            {actingId === u.id ? 'Updating...' : 'Suspend'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-
-                {canModerate && (
-                  <div className="mt-4 pt-3 border-t space-y-3">
-                    {isAdmin && !u.banned && (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-bold text-gray-500 w-16">Ban:</span>
-                        <select
-                          value={banReasons[u.id] ?? ''}
-                          onChange={(e) => setBanReasons((prev) => ({ ...prev, [u.id]: e.target.value }))}
-                          className="text-xs border rounded px-2 py-1.5 flex-1 min-w-[160px]"
-                        >
-                          <option value="">Select reason...</option>
-                          {BAN_REASONS.map((r) => (
-                            <option key={r} value={r}>
-                              {r}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => toggleBan(u.id, u.display_name, false)}
-                          disabled={actingId === u.id}
-                          className="text-xs font-bold px-3 py-1.5 rounded border border-red-600 text-red-600 hover:bg-red-50 disabled:opacity-50"
-                        >
-                          {actingId === u.id ? 'Updating...' : 'Ban'}
-                        </button>
-                      </div>
-                    )}
-
-                    {isAdmin && u.banned && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-gray-500 w-16">Ban:</span>
-                        <button
-                          onClick={() => toggleBan(u.id, u.display_name, true)}
-                          disabled={actingId === u.id}
-                          className="text-xs font-bold px-3 py-1.5 rounded border border-green-600 text-green-700 hover:bg-green-50 disabled:opacity-50"
-                        >
-                          {actingId === u.id ? 'Updating...' : 'Unban'}
-                        </button>
-                      </div>
-                    )}
-
-                    {isCurrentlySuspended ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-gray-500 w-16">Suspend:</span>
-                        <button
-                          onClick={() => handleUnsuspend(u.id, u.display_name)}
-                          disabled={actingId === u.id}
-                          className="text-xs font-bold px-3 py-1.5 rounded border border-green-600 text-green-700 hover:bg-green-50 disabled:opacity-50"
-                        >
-                          {actingId === u.id ? 'Updating...' : 'Unsuspend'}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-bold text-gray-500 w-16">Suspend:</span>
-                        <select
-                          value={suspendReasons[u.id] ?? ''}
-                          onChange={(e) => setSuspendReasons((prev) => ({ ...prev, [u.id]: e.target.value }))}
-                          className="text-xs border rounded px-2 py-1.5 flex-1 min-w-[160px]"
-                        >
-                          <option value="">Select reason...</option>
-                          {SUSPEND_REASONS.map((r) => (
-                            <option key={r} value={r}>
-                              {r}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          value={suspendDurations[u.id] ?? 24}
-                          onChange={(e) =>
-                            setSuspendDurations((prev) => ({ ...prev, [u.id]: Number(e.target.value) }))
-                          }
-                          className="text-xs border rounded px-2 py-1.5"
-                        >
-                          {DURATION_OPTIONS.map((opt) => (
-                            <option key={opt.hours} value={opt.hours}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => handleSuspend(u.id, u.display_name)}
-                          disabled={actingId === u.id}
-                          className="text-xs font-bold px-3 py-1.5 rounded border border-orange-600 text-orange-700 hover:bg-orange-50 disabled:opacity-50"
-                        >
-                          {actingId === u.id ? 'Updating...' : 'Suspend'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       </div>
     </>
