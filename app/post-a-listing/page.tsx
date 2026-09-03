@@ -95,6 +95,9 @@ const todayStr = () => new Date().toISOString().slice(0, 10)
 const FUTURE_DOB_MESSAGE = "That date hasn't happened yet — neither has this puppy."
 const READY_BEFORE_BIRTH_MESSAGE = "A puppy can't leave home before it's even born. Please pick a 'ready from' date after the birth date."
 
+const inputClass = "w-full border border-pd-black/15 rounded-md px-3 py-2 bg-white"
+const labelClass = "block text-sm font-medium mb-1 text-pd-black"
+
 export default function PostAListingPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
@@ -102,6 +105,7 @@ export default function PostAListingPage() {
   const [error, setError] = useState('')
   const [access, setAccess] = useState<AccessState>('checking')
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [showCuteMessage, setShowCuteMessage] = useState(false)
 
   const [colours, setColours] = useState<Colour[]>([])
   const [sizes, setSizes] = useState<Size[]>([])
@@ -248,8 +252,6 @@ export default function PostAListingPage() {
     setter((prev) => ({ ...prev, [code]: value }))
   }
 
-  const [showCuteMessage, setShowCuteMessage] = useState(false)
-
   const handlePhotoChange = (index: number, file: File | null) => {
     const newPhotos = [...photos]
     newPhotos[index] = file
@@ -317,7 +319,7 @@ export default function PostAListingPage() {
           value={results[t.code]}
           onChange={(e) => setParentTestResult(t.code, e.target.value, setter)}
           placeholder="e.g. 0/0"
-          className="border rounded-md px-2 py-1 text-sm w-24"
+          className="border border-pd-black/15 rounded-md px-2 py-1 text-sm w-24 bg-white"
         />
       )
     }
@@ -326,7 +328,7 @@ export default function PostAListingPage() {
       <select
         value={results[t.code]}
         onChange={(e) => setParentTestResult(t.code, e.target.value, setter)}
-        className="border rounded-md px-2 py-1 text-sm"
+        className="border border-pd-black/15 rounded-md px-2 py-1 text-sm bg-white"
       >
         {options.map((r) => (
           <option key={r.value} value={r.value}>
@@ -342,11 +344,11 @@ export default function PostAListingPage() {
     results: Record<string, string>,
     setter: React.Dispatch<React.SetStateAction<Record<string, string>>>
   ) => (
-    <div className="border rounded-md p-4 space-y-3">
-      <h3 className="font-semibold">{title}</h3>
+    <div className="border border-pd-black/15 rounded-md p-4 space-y-3 bg-white">
+      <h3 className="font-semibold text-pd-black">{title}</h3>
       {healthTests.map((t) => (
         <div key={t.code} className="flex items-center justify-between gap-2">
-          <label className="flex items-center gap-2 flex-1">
+          <label className="flex items-center gap-2 flex-1 text-pd-black">
             <input
               type="checkbox"
               checked={results[t.code] !== undefined}
@@ -550,7 +552,9 @@ export default function PostAListingPage() {
     return (
       <>
         <Header />
-        <div className="max-w-2xl mx-auto mt-16 p-6 text-gray-500">Loading...</div>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-2xl mx-auto pt-16 p-6 text-pd-gray">Loading...</div>
+        </div>
       </>
     )
   }
@@ -559,17 +563,19 @@ export default function PostAListingPage() {
     return (
       <>
         <Header />
-        <div className="max-w-md mx-auto mt-16 p-6 text-center">
-          <h1 className="text-2xl font-bold mb-3">Sign in required</h1>
-          <p className="text-gray-600 mb-6">
-            You need to be signed in with a breeder account to post a listing.
-          </p>
-          <a
-            href="/login"
-            className="inline-block bg-black text-white font-bold px-6 py-3"
-          >
-            Sign in
-          </a>
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-md mx-auto pt-16 p-6 text-center">
+            <h1 className="text-2xl font-bold mb-3 text-pd-black">Sign in required</h1>
+            <p className="text-pd-gray mb-6">
+              You need to be signed in with a breeder account to post a listing.
+            </p>
+            <a
+              href="/login"
+              className="inline-block bg-pd-black text-pd-gold font-bold px-6 py-3"
+            >
+              Sign in
+            </a>
+          </div>
         </div>
       </>
     )
@@ -579,458 +585,16 @@ export default function PostAListingPage() {
     return (
       <>
         <Header />
-        <div className="max-w-md mx-auto mt-16 p-6 text-center">
-          <h1 className="text-2xl font-bold mb-3">Breeder account required</h1>
-          <p className="text-gray-600 mb-6">
-            Only breeder accounts can post listings. Your current account is registered as a
-            buyer. To post a listing, please create a separate account and select
-            <strong> "Breeder"</strong> during sign up.
-          </p>
-          <a
-            href="/register"
-            className="inline-block bg-black text-white font-bold px-6 py-3"
-          >
-            Create a breeder account
-          </a>
-        </div>
-      </>
-    )
-  }
-
-  return (
-    <>
-      <Header />
-      <div className="max-w-2xl mx-auto mt-10 p-6">
-        <h1 className="text-2xl font-bold mb-2">Post a Listing</h1>
-
-        <div className="flex items-center gap-2 mb-8 text-xs text-gray-500 flex-wrap">
-          {STEPS.map((s, i) => (
-            <div key={s} className={`px-2 py-1 rounded ${i === step ? 'bg-black text-white' : ''}`}>
-              {i + 1}. {s}
-            </div>
-          ))}
-        </div>
-
-        {step === 0 && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Listing type</label>
-              <select
-                value={form.listing_type}
-                onChange={(e) => update('listing_type', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              >
-                <option value="PUPPY">Puppy</option>
-                <option value="YOUNG_DOG">Young dog</option>
-                <option value="ADULT_DOG">Adult dog</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Sex</label>
-              <select
-                value={form.sex}
-                onChange={(e) => update('sex', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              >
-                <option value="">Select</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Title</label>
-              <input
-                type="text"
-                value={form.title}
-                onChange={(e) => update('title', e.target.value)}
-                placeholder="e.g. Standard Poodle Puppies Available"
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
-              <textarea
-                value={form.description}
-                onChange={(e) => update('description', e.target.value)}
-                rows={4}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Date of birth</label>
-              <input
-                type="date"
-                value={form.date_of_birth}
-                max={todayStr()}
-                onChange={(e) => update('date_of_birth', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Ready from</label>
-              <input
-                type="date"
-                value={form.ready_from}
-                min={form.date_of_birth || undefined}
-                onChange={(e) => update('ready_from', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Males available</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.males_available}
-                  onChange={(e) => update('males_available', e.target.value)}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Females available</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.females_available}
-                  onChange={(e) => update('females_available', e.target.value)}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {step === 1 && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Approximate adult size</label>
-              <select
-                value={form.size_code}
-                onChange={(e) => update('size_code', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              >
-                <option value="">Select a size</option>
-                {SIZE_OPTIONS.map((s) => (
-                  <option key={s.code} value={s.code}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Colour</label>
-              <select
-                value={form.colour_code}
-                onChange={(e) => update('colour_code', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              >
-                <option value="">Select a colour</option>
-                {colours.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Sire (father) colour</label>
-                <input
-                  type="text"
-                  value={form.sire_colour}
-                  onChange={(e) => update('sire_colour', e.target.value)}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Dam (mother) colour</label>
-                <input
-                  type="text"
-                  value={form.dam_colour}
-                  onChange={(e) => update('dam_colour', e.target.value)}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Sire (father) size</label>
-                <select
-                  value={form.sire_size}
-                  onChange={(e) => update('sire_size', e.target.value)}
-                  className="w-full border rounded-md px-3 py-2"
-                >
-                  <option value="">Select a size</option>
-                  {SIZE_OPTIONS.map((s) => (
-                    <option key={s.code} value={s.code}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Dam (mother) size</label>
-                <select
-                  value={form.dam_size}
-                  onChange={(e) => update('dam_size', e.target.value)}
-                  className="w-full border rounded-md px-3 py-2"
-                >
-                  <option value="">Select a size</option>
-                  {SIZE_OPTIONS.map((s) => (
-                    <option key={s.code} value={s.code}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Suitable for (choose 1–3)</label>
-              <div className="space-y-2">
-                {PURPOSE_OPTIONS.map((p) => (
-                  <label key={p.code} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={form.purposes.includes(p.code)}
-                      onChange={() => togglePurpose(p.code)}
-                    />
-                    {p.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Kennel name</label>
-              <input
-                type="text"
-                value={form.kennel_registration_name}
-                onChange={(e) => update('kennel_registration_name', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Kennel club</label>
-              <select
-                value={form.registry_code}
-                onChange={(e) => update('registry_code', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              >
-                <option value="">Select a kennel club</option>
-                {registries.map((r) => (
-                  <option key={r.code} value={r.code}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Registration number</label>
-              <input
-                type="text"
-                value={form.registration_number}
-                onChange={(e) => update('registration_number', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Do the parents have pedigree?</label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="has_pedigree"
-                    checked={form.has_pedigree === 'yes'}
-                    onChange={() => update('has_pedigree', 'yes')}
-                  />
-                  Yes
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="has_pedigree"
-                    checked={form.has_pedigree === 'no'}
-                    onChange={() => update('has_pedigree', 'no')}
-                  />
-                  No
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Parent titles (optional)</label>
-              <input
-                type="text"
-                value={form.parent_titles}
-                onChange={(e) => update('parent_titles', e.target.value)}
-                placeholder="e.g. CH, INT CH"
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="space-y-6">
-            <p className="text-sm text-gray-500">
-              Tick each health test that has been carried out on the parents, and enter the result.
+        <div className="bg-pd-cream min-h-screen">
+          <div className="max-w-md mx-auto pt-16 p-6 text-center">
+            <h1 className="text-2xl font-bold mb-3 text-pd-black">Breeder account required</h1>
+            <p className="text-pd-gray mb-6">
+              Only breeder accounts can post listings. Your current account is registered as a
+              buyer. To post a listing, please create a separate account and select
+              <strong> "Breeder"</strong> during sign up.
             </p>
-            {renderParentHealthSection('Sire (father)', sireResults, setSireResults)}
-            {renderParentHealthSection('Dam (mother)', damResults, setDamResults)}
-            <div className="border-t pt-4 space-y-2">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={form.microchipped} onChange={() => toggleBoolean('microchipped')} />
-                Puppy is microchipped
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={form.vaccinated} onChange={() => toggleBoolean('vaccinated')} />
-                Puppy is vaccinated
-              </label>
-            </div>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2">
-                <label className="block text-sm font-medium mb-1">Price</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.price}
-                  onChange={(e) => update('price', e.target.value)}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Currency</label>
-                <select
-                  value={form.currency_code}
-                  onChange={(e) => update('currency_code', e.target.value)}
-                  className="w-full border rounded-md px-3 py-2"
-                >
-                  {currencies.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.code} ({c.symbol})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Country</label>
-              <select
-                value={form.country_code}
-                onChange={(e) => update('country_code', e.target.value)}
-                className="w-full border rounded-md px-3 py-2"
-              >
-                <option value="">Select a country</option>
-                {countries.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Willing to send to (choose all that apply)</label>
-              <div className="space-y-2">
-                {SELL_SCOPE_OPTIONS.map((s) => (
-                  <label key={s.code} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={form.sell_scope.includes(s.code)}
-                      onChange={() => toggleListValue('sell_scope', s.code)}
-                    />
-                    {s.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Transport options</label>
-              <div className="space-y-2">
-                {TRANSPORT_OPTIONS.map((t) => (
-                  <label key={t.code} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={form.transport_options.includes(t.code)}
-                      onChange={() => toggleListValue('transport_options', t.code)}
-                    />
-                    {t.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {step === 5 && (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-500">Upload up to 3 photos. At least 1 photo is required.</p>
-            {showCuteMessage && (
-              <p className="text-pd-gold font-semibold text-sm">Aww, so cute! 😍</p>
-            )}
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="border rounded-md p-4">
-                <label className="block text-sm font-medium mb-2">Photo {i + 1}</label>
-                {photoPreviews[i] && (
-                  <img src={photoPreviews[i]!} alt={`Preview ${i + 1}`} className="w-full h-48 object-cover rounded-md mb-2" />
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handlePhotoChange(i, e.target.files?.[0] ?? null)}
-                  className="w-full text-sm"
-                />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {error && <p className="text-red-600 text-sm mt-4">{error}</p>}
-
-        <div className="flex justify-between mt-8">
-          <button onClick={back} disabled={step === 0} className="px-4 py-2 border rounded-md disabled:opacity-30">
-            Back
-          </button>
-          {step === STEPS.length - 1 ? (
-            <button
-              onClick={handleSubmit}
-              disabled={saving}
-              className="px-6 py-2 bg-black text-white rounded-md disabled:opacity-50"
+            <a
+              href="/register"
+              className="inline-block bg-pd-black text-pd-gold font-bold px-6 py-3"
             >
-              {saving ? 'Publishing...' : 'Publish Listing'}
-            </button>
-          ) : (
-            <button onClick={next} className="px-4 py-2 bg-black text-white rounded-md">
-              Next
-            </button>
-          )}
-        </div>
-      </div>
-    </>
-  )
-}
+              Create a breeder acc
