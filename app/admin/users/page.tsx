@@ -14,6 +14,11 @@ const DURATION_OPTIONS = [
   { label: '1 Month', hours: 24 * 30 },
 ]
 
+const ROLE_RANK: Record<string, number> = {
+  admin: 0,
+  moderator: 1,
+}
+
 type UserRow = {
   id: string
   display_name: string | null
@@ -233,7 +238,7 @@ export default function AdminUsersPage() {
     )
   }
 
-  const sortedUsers = [...users].sort((a, b) => {
+  const secondarySort = (a: UserRow, b: UserRow) => {
     if (sortBy === 'name') {
       return (a.display_name ?? '').localeCompare(b.display_name ?? '')
     }
@@ -246,6 +251,13 @@ export default function AdminUsersPage() {
     if (!a.last_sign_in_at) return 1
     if (!b.last_sign_in_at) return -1
     return new Date(b.last_sign_in_at).getTime() - new Date(a.last_sign_in_at).getTime()
+  }
+
+  const sortedUsers = [...users].sort((a, b) => {
+    const rankA = ROLE_RANK[a.role] ?? 2
+    const rankB = ROLE_RANK[b.role] ?? 2
+    if (rankA !== rankB) return rankA - rankB
+    return secondarySort(a, b)
   })
 
   return (
@@ -268,6 +280,8 @@ export default function AdminUsersPage() {
             <option value="listings">Sort: Most listings</option>
           </select>
         </div>
+
+        <p className="text-xs text-gray-400 mb-4">Admins shown first, then moderators, then other users.</p>
 
         {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
 
