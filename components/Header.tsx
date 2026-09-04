@@ -283,9 +283,9 @@ export default function Header() {
             <Link href="/about" className="hover:text-pd-gold">
               ABOUT US
             </Link>
-            <button className="flex items-center gap-1 hover:text-pd-gold">
-              RESOURCES <ChevronDown size={14} />
-            </button>
+            <Link href="/faq" className="hover:text-pd-gold">
+              RESOURCES
+            </Link>
           </nav>
 
           <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm">
