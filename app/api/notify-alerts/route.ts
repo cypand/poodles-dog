@@ -34,7 +34,19 @@ export async function POST(req: NextRequest) {
     const colour = Array.isArray(listing.colour) ? listing.colour[0] : listing.colour
     const country = Array.isArray(listing.country) ? listing.country[0] : listing.country
 
-    const { data: alerts } = await supabase.from('listing_alerts').select('*')
+    const { data: alerts, error: alertsError } = await supabase.from('listing_alerts').select('*')
+
+    console.log('notify-alerts: alerts fetch result', {
+      alerts_error: alertsError ? {
+        message: alertsError.message,
+        code: alertsError.code,
+        details: alertsError.details,
+        hint: alertsError.hint,
+      } : null,
+      alerts_count: alerts?.length ?? 0,
+      key_prefix: supabaseServiceRoleKey?.slice(0, 20) ?? 'MISSING',
+      key_length: supabaseServiceRoleKey?.length ?? 0,
+    })
 
     const normalize = (v: string | null | undefined) =>
       (v ?? '').toUpperCase().replace(/\s+/g, '_')
