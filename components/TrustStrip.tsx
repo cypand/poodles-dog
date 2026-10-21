@@ -1,4 +1,4 @@
-import { Globe2, ShieldCheck, HeartPulse, PlaneTakeoff } from "lucide-react";
+import { Globe2, ShieldCheck, HeartPulse } from "lucide-react";
 
 const items = [
   {
@@ -8,25 +8,20 @@ const items = [
   },
   {
     icon: ShieldCheck,
-    title: "VERIFIED BREEDERS",
-    desc: "Trusted breeders, real connections",
+    title: "DIRECT CONTACT",
+    desc: "Message breeders directly, no middleman",
   },
   {
     icon: HeartPulse,
     title: "HEALTH FIRST",
     desc: "Health tested parents for healthier puppies",
   },
-  {
-    icon: PlaneTakeoff,
-    title: "GLOBAL DELIVERY",
-    desc: "Breeders who can assist with safe transport",
-  },
 ];
 
 export default function TrustStrip() {
   return (
     <section className="bg-pd-cream pt-16 pb-10">
-      <div className="container-pd grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="container-pd grid sm:grid-cols-3 gap-8">
         {items.map(({ icon: Icon, title, desc }) => (
           <div key={title} className="flex gap-3">
             <Icon className="text-pd-gold shrink-0" size={26} />
