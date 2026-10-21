@@ -20,12 +20,15 @@ type DisplayConversation = ConversationRow & {
   unread_count: number
 }
 
+type SortOption = 'newest' | 'oldest' | 'name'
+
 export default function MessagesPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
   const [conversations, setConversations] = useState<DisplayConversation[]>([])
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<SortOption>('newest')
 
   useEffect(() => {
     const load = async () => {
@@ -144,19 +147,48 @@ export default function MessagesPage() {
     )
   }
 
+  const sortedConversations = [...conversations].sort((a, b) => {
+    // Unread conversations always come first
+    const aUnread = a.unread_count > 0 ? 1 : 0
+    const bUnread = b.unread_count > 0 ? 1 : 0
+    if (aUnread !== bUnread) return bUnread - aUnread
+
+    if (sortBy === 'name') {
+      return a.otherName.localeCompare(b.otherName)
+    }
+    if (sortBy === 'oldest') {
+      return new Date(a.last_message_at).getTime() - new Date(b.last_message_at).getTime()
+    }
+    return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
+  })
+
   return (
     <>
       <Header />
       <div className="bg-pd-cream min-h-screen">
         <div className="max-w-2xl mx-auto p-6">
-          <h1 className="text-2xl font-bold mb-6 text-pd-black">Messages</h1>
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+            <h1 className="text-2xl font-bold text-pd-black">Messages</h1>
+
+            {conversations.length > 0 && (
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="border border-pd-black/15 rounded-md px-3 py-2 text-sm bg-white text-pd-black"
+              >
+                <option value="newest">Sort: Newest</option>
+                <option value="oldest">Sort: Oldest</option>
+                <option value="name">Sort: Name A-Z</option>
+              </select>
+            )}
+          </div>
 
           {conversations.length === 0 && (
             <p className="text-pd-gray">No conversations yet.</p>
           )}
 
           <div className="space-y-2">
-            {conversations.map((c) => (
+            {sortedConversations.map((c) => (
               <div key={c.id} className="bg-white border border-pd-black/10 rounded-md p-4">
                 <Link href={`/messages/${c.id}`} className="block hover:opacity-80">
                   <div className="flex items-center justify-between">
