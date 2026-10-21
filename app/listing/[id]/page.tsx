@@ -309,7 +309,7 @@ export default function ListingDetailPage() {
     <>
       <Header />
       <div className="bg-pd-cream min-h-screen">
-        <div className="max-w-5xl mx-auto p-6 grid md:grid-cols-2 gap-8">
+        <div className="max-w-5xl mx-auto p-6 grid md:grid-cols-2 gap-8 md:items-start">
           <div>
             <div className="aspect-square bg-white rounded-md overflow-hidden mb-3 border border-pd-black/10">
               {sortedPhotos[activePhoto] ? (
@@ -439,9 +439,9 @@ export default function ListingDetailPage() {
             )}
           </div>
 
-          <div>
+          <div className="md:self-start">
             {!isOwnListing && (
-              <div className="border border-pd-black/10 rounded-md p-5 sticky top-6 bg-white">
+              <div className="border border-pd-black/10 rounded-md p-5 md:sticky md:top-6 bg-white">
                 <h2 className="font-bold text-lg mb-4 text-pd-black">Message the breeder</h2>
 
                 {sent ? (
@@ -567,4 +567,4 @@ export default function ListingDetailPage() {
       </div>
     </>
   )
-}
+      }
