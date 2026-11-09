@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Flag, BadgeCheck, Eye } from 'lucide-react'
+import { Flag, BadgeCheck, Eye, Share2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
 import Header from '@/components/Header'
 
@@ -85,6 +85,8 @@ export default function ListingDetailPage() {
   const [reportSent, setReportSent] = useState(false)
   const [reportError, setReportError] = useState('')
 
+  const [copied, setCopied] = useState(false)
+
   useEffect(() => {
     const loadParentDog = async (dogId: string): Promise<ParentDog | null> => {
       const { data: dog } = await supabase
@@ -150,6 +152,44 @@ export default function ListingDetailPage() {
     }
     load()
   }, [listingId])
+
+  const getShareUrl = () => {
+    if (!listing) return ''
+    return `${window.location.origin}/listing/${listing.id}`
+  }
+
+  const getShareText = () => {
+    if (!listing) return ''
+    return `${listing.title || 'Poodle listing'} on Poodles.dog`
+  }
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(getShareUrl())
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    } catch {
+      window.prompt('Copy this link:', getShareUrl())
+    }
+  }
+
+  const handleShare = async () => {
+    if (!listing) return
+    const url = getShareUrl()
+    const text = getShareText()
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ title: listing.title || 'Poodles.dog', text, url })
+        return
+      } catch (err) {
+        // User closed the share menu: do nothing
+        if ((err as Error)?.name === 'AbortError') return
+      }
+    }
+
+    await copyLink()
+  }
 
   const handleDelete = async () => {
     if (!listing) return
@@ -371,6 +411,14 @@ export default function ListingDetailPage() {
               <span className="flex items-center gap-1 text-xs text-pd-gray">
                 <Eye size={12} /> {listing.view_count ?? 0} views
               </span>
+              {!isOwnListing && (
+                <button
+                  onClick={handleShare}
+                  className="flex items-center gap-1 text-xs font-medium text-pd-gray hover:text-pd-black border border-pd-black/15 bg-white rounded-md px-2 py-1"
+                >
+                  <Share2 size={12} /> {copied ? 'Link copied!' : 'Share'}
+                </button>
+              )}
             </div>
 
             <p className="text-2xl font-bold text-pd-gold mb-6">
@@ -440,6 +488,46 @@ export default function ListingDetailPage() {
           </div>
 
           <div className="md:self-start">
+            {isOwnListing && (
+              <div className="border-2 border-pd-gold rounded-md p-5 md:sticky md:top-6 bg-white">
+                <h2 className="font-bold text-lg mb-2 text-pd-black">Share your listing</h2>
+                <p className="text-sm text-pd-gray mb-4">
+                  Listings shared on social media get more enquiries. Share it on your Facebook,
+                  Instagram, WhatsApp or anywhere your followers are.
+                </p>
+                <button
+                  onClick={handleShare}
+                  className="w-full bg-pd-black text-pd-gold font-bold text-sm py-3 flex items-center justify-center gap-2"
+                >
+                  <Share2 size={16} /> {copied ? 'Link copied!' : 'Share listing'}
+                </button>
+                <div className="flex gap-2 mt-3">
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(`${getShareText()} ${getShareUrl()}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-center text-xs font-bold border border-pd-black/15 py-2 bg-white text-pd-black"
+                  >
+                    WhatsApp
+                  </a>
+                  <a
+                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(getShareUrl())}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-center text-xs font-bold border border-pd-black/15 py-2 bg-white text-pd-black"
+                  >
+                    Facebook
+                  </a>
+                  <button
+                    onClick={copyLink}
+                    className="flex-1 text-center text-xs font-bold border border-pd-black/15 py-2 bg-white text-pd-black"
+                  >
+                    Copy link
+                  </button>
+                </div>
+              </div>
+            )}
+
             {!isOwnListing && (
               <div className="border border-pd-black/10 rounded-md p-5 md:sticky md:top-6 bg-white">
                 <h2 className="font-bold text-lg mb-4 text-pd-black">Message the breeder</h2>
@@ -567,4 +655,4 @@ export default function ListingDetailPage() {
       </div>
     </>
   )
-      }
+}
