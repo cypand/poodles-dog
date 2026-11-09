@@ -27,6 +27,10 @@ export const metadata: Metadata = {
     "brown poodle",
     "silver poodle",
   ],
+  icons: {
+    icon: "/logo-black-bg.png",
+    apple: "/logo-black-bg.png",
+  },
   openGraph: {
     title: "POODLES.DOG — Find. Connect. Love.",
     description:
