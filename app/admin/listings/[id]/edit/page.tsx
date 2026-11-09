@@ -85,6 +85,7 @@ export default function AdminEditListingPage() {
   const [existingPhotos, setExistingPhotos] = useState<Photo[]>([])
   const [newPhotos, setNewPhotos] = useState<(File | null)[]>([null, null, null])
   const [listingTitle, setListingTitle] = useState('')
+  const [originalStatus, setOriginalStatus] = useState('PENDING')
 
   const [form, setForm] = useState<EditForm>({
     listing_type: 'PUPPY',
@@ -161,6 +162,7 @@ export default function AdminEditListingPage() {
       const colour = Array.isArray(listing.colour) ? listing.colour[0] : listing.colour
 
       setListingTitle(listing.title ?? '')
+      setOriginalStatus(listing.status ?? 'PENDING')
 
       setForm({
         listing_type: listing.listing_type ?? 'PUPPY',
@@ -228,6 +230,10 @@ export default function AdminEditListingPage() {
     const sizeMatch = sizes.find((s) => s.code === form.size_code)
     const colourMatch = colours.find((c) => c.code === form.colour_code)
 
+    // Approval = listing moves to ACTIVE from PENDING or REJECTED (not re-activation of SOLD/EXPIRED)
+    const isApproval =
+      form.status === 'ACTIVE' && (originalStatus === 'PENDING' || originalStatus === 'REJECTED')
+
     const { error: updateError } = await supabase
       .from('listings')
       .update({
@@ -252,6 +258,7 @@ export default function AdminEditListingPage() {
         sell_scope: form.sell_scope.length > 0 ? form.sell_scope : null,
         transport_options: form.transport_options.length > 0 ? form.transport_options : null,
         status: form.status,
+        ...(isApproval ? { rejection_reason: null } : {}),
       })
       .eq('id', listingId)
 
@@ -285,6 +292,18 @@ export default function AdminEditListingPage() {
     }
 
     await logAudit('Edited listing', 'listing', listingId, form.title || listingTitle || 'Untitled listing')
+
+    if (isApproval) {
+      await logAudit('Approved listing', 'listing', listingId, form.title || listingTitle || 'Untitled listing')
+      fetch('/api/notify-alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listing_id: listingId }),
+      }).catch(() => {})
+    }
+
+    // Prevent duplicate alert emails if the admin clicks Save again
+    setOriginalStatus(form.status)
 
     setSaving(false)
     setSuccess(true)
